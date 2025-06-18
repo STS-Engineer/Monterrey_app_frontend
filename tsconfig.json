@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",          // Or "react" if using older React version
+    "allowJs": true,             // ✅ Allow .js and .jsx files
+    "checkJs": false,            // Optional: set to false if you don’t want to type-check JS/JSX
+    "esModuleInterop": true,    
+    "moduleResolution": "node",
+    "module": "esnext",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "strict": true
+  },
+  "include": ["src/**/*", "src/**/*.jsx"],
+  "exclude": ["node_modules"]
+}
