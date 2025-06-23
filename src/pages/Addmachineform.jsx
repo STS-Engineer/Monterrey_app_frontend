@@ -102,7 +102,7 @@ const AddMachineForm = () => {
     // Fetch products when the component mounts
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:4000/ajouter/products');
+        const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/products');
         setProducts(response.data);
         console.log(response.data);
       } catch (error) {
@@ -117,7 +117,7 @@ const AddMachineForm = () => {
   useEffect(() => {
     const fetchMachines = async () => {
       try {
-        const response = await axios.get("http://localhost:4000/ajouter/machines");
+        const response = await axios.get("https://machine-backend.azurewebsites.net/ajouter/machines");
         setMachines(response.data || []); // Ensure the response is not null
         console.log('fetched', response.data);
       } catch (error) {
@@ -132,7 +132,7 @@ const AddMachineForm = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const response = await axios.get("http://localhost:4000/ajouter/machines");
+        const response = await axios.get("https://machine-backend.azurewebsites.net/ajouter/machines");
         setLastMachineId(response.data.machine_id);
         console.log('fetched machine', response.data);
       } catch (error) {
@@ -283,7 +283,7 @@ const AddMachineForm = () => {
   
     try {
       // Step 1: Create Machine
-      const response = await axios.post("http://localhost:4000/ajouter/machines", formDataToSend, {
+      const response = await axios.post("https://machine-backend.azurewebsites.net/ajouter/machines", formDataToSend, {
         headers: {
           "Content-Type": "multipart/form-data",
           "Authorization": `Bearer ${token}`
@@ -308,7 +308,7 @@ await Promise.all(
   productIds.map(async (productId) => {
     try {
       console.log("➡️ Sending product ID:", productId);
-      const res = await axios.post("http://localhost:4000/ajouter/machineproducts", {
+      const res = await axios.post("https://machine-backend.azurewebsites.net/ajouter/machineproducts", {
         machine_id: createdMachineId,
         product_id: productId, // Ensure this is a number
         user_id: Number(user_id),
@@ -339,7 +339,7 @@ message.warning("No products selected.");
   
           await Promise.all(
             stationsToCreate.map(station =>
-              axios.post("http://localhost:4000/ajouter/stations", station, {
+              axios.post("https://machine-backend.azurewebsites.net/ajouter/stations", station, {
                 headers: {
                   "Content-Type": "application/json",
                   "Authorization": `Bearer ${token}`
@@ -438,7 +438,7 @@ message.warning("No products selected.");
       }
   
       // Send data to API (use your specific endpoint here)
-      const response = await axios.put(`http://localhost:4000/ajouter/machines/${machineId}`, formData, {
+      const response = await axios.put(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -503,7 +503,7 @@ message.warning("No products selected.");
         return;
       }
   
-      const response = await axios.post('http://localhost:4000/ajouter/Products', {
+      const response = await axios.post('https://machine-backend.azurewebsites.net/ajouter/Products', {
         ...values,
         user_id: parsedUserId,
       });
