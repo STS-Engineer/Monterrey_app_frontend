@@ -28,13 +28,13 @@ const TeamAssignmentForManager = () => {
     try {
       // Get executors already assigned to this manager
       const assignedRes = await axios.get(
-        `http://localhost:4000/ajouter/manager-executors/${managerId}`
+        `https://machine-backend.azurewebsites.net/ajouter/manager-executors/${managerId}`
       );
       setAssignedExecutors(assignedRes.data);
 
       // Get available executors (not assigned to any manager)
       const availableRes = await axios.get(
-        "http://localhost:4000/ajouter/available-executors"
+        "https://machine-backend.azurewebsites.net/ajouter/available-executors"
       );
       setAvailableExecutors(availableRes.data);
 
@@ -60,7 +60,7 @@ const TeamAssignmentForManager = () => {
   const handleAssignTeam = async () => {
     const selectedIds = Object.keys(selectedExecutors).filter((id) => selectedExecutors[id]);
     try {
-      await axios.post("http://localhost:4000/ajouter/assign-team", {
+      await axios.post("https://machine-backend.azurewebsites.net/ajouter/assign-team", {
         managerId,
         executorIds: selectedIds,
       });
