@@ -21,12 +21,19 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '22.x'
+          node-version: '16.x' 
+          cache: 'npm'
+
+          
       - name: Disable CI checks
         run: echo "CI=false" >> $GITHUB_ENV
       - name: npm install, build, and test
         run: |
           npm install
+          npm install --save-dev @types/node @types/react @types/react-dom @types/jquery
+          npm install axios @types/axios
+          npm audit fix
+
       - name: npm  build
         run: |
           npm run build --if-present
