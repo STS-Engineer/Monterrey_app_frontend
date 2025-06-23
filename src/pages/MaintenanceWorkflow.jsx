@@ -35,8 +35,8 @@ useEffect(() => {
     try {
       if (role === 'EXECUTOR' || role === 'MANAGER') {
         const [tasksRes, inboxRes] = await Promise.all([
-          axios.get(`http://localhost:4000/api/tasks/executor/${userId}`),
-          axios.get(`http://localhost:4000/api/inbox/executor/${userId}`)
+          axios.get(`https://machine-backend.azurewebsites.net/api/tasks/executor/${userId}`),
+          axios.get(`https://machine-backend.azurewebsites.net/api/inbox/executor/${userId}`)
         ]);
 
         setRawTasks(tasksRes.data); // Keep original machine_id and assigned_to
@@ -97,7 +97,7 @@ useEffect(() => {
 
         try {
           const res = await axios.get(
-            `http://localhost:4000/ajouter/maintenance/reviews/by-maintenance/${item.maintenance_id}`
+            `https://machine-backend.azurewebsites.net/ajouter/maintenance/reviews/by-maintenance/${item.maintenance_id}`
           );
           const feedback = res.data?.feedback || 'No feedback provided';
           console.log(`✅ Feedback for maintenance_id ${item.maintenance_id}:`, feedback);
@@ -140,14 +140,14 @@ useEffect(() => {
 }, [userId, role]);
 
     useEffect(() => {
-      axios.get('http://localhost:4000/ajouter/users')
+      axios.get('https://machine-backend.azurewebsites.net/ajouter/users')
         .then(res => {
           setUsers(res.data);
         })
         .catch(err => console.error('Failed to fetch users:', err));
     }, []);
    useEffect(() => {
-  fetch('http://localhost:4000/ajouter/machines')
+  fetch('https://machine-backend.azurewebsites.net/ajouter/machines')
     .then((response) => response.json())
     .then((data) => setMachines(data))
     .catch((error) => console.error('Error fetching machines:', error));
@@ -239,12 +239,12 @@ const handleSendReview = async (taskId) => {
     ));
 
     const response = await axios.post(
-      `http://localhost:4000/ajouter/maintenance/${taskId}/review`,
+      `https://machine-backend.azurewebsites.net/ajouter/maintenance/${taskId}/review`,
       { user_id: userId, demanded_by: userId }
     );
 
     // Update inbox after successful submission
-    const inboxRes = await axios.get(`http://localhost:4000/api/inbox/executor/${userId}`);
+    const inboxRes = await axios.get(`https://machine-backend.azurewebsites.net/api/inbox/executor/${userId}`);
     setRawInbox(inboxRes.data);
 
     socket.emit('taskSubmitted', {
