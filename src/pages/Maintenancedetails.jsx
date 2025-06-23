@@ -58,7 +58,7 @@ const managerId = localStorage.getItem('user_id');
 useEffect(() => {
   if (role === 'MANAGER' && managerId) {
     axios
-      .get(`http://localhost:4000/ajouter/team-executors/${managerId}`)
+      .get(`https://machine-backend.azurewebsites.net/ajouter/team-executors/${managerId}`)
       .then((res) => {
         setExecutors(res.data.executors || []);
       })
@@ -79,7 +79,7 @@ useEffect(() => {
     try {
       const userId = localStorage.getItem('user_id'); // Or get from context/auth
       const role = localStorage.getItem('role'); 
-     const response = await axios.get(`http://localhost:4000/ajouter/maintenancee?userId=${userId}&role=${role}`);
+     const response = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenancee?userId=${userId}&role=${role}`);
       if (isMounted) {
         setData(response.data);
         console.log('Maintenance data:', response.data);
@@ -101,7 +101,7 @@ useEffect(() => {
     let isMounted = true;
     const fetchMachines = async () => {
       try {
-        const response = await axios.get('http://localhost:4000/ajouter/machines');
+        const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/machines');
         if (isMounted) {
           setMachines(response.data);
         }
@@ -121,7 +121,7 @@ useEffect(() => {
     let isMounted = true;
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:4000/ajouter/users');
+        const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/users');
         if (isMounted) {
           setUsers(response.data);
         }
@@ -146,11 +146,7 @@ useEffect(() => {
 
 
 // Reset history when opening modal
-useEffect(() => {
-  if (modalType === 'history') {
-    setModificationHistory([]); // Force clear old data
-  }
-}, [modalType]);
+
 
 useEffect(() => {
   const fetchHistory = async () => {
@@ -158,7 +154,7 @@ useEffect(() => {
       setLoadingHistory(true);
       try {
         const response = await axios.get(
-          `http://localhost:4000/ajouter/maintenance/${selectedItem.id}/history`
+          `https://machine-backend.azurewebsites.net/ajouter/maintenance/${selectedItem.id}/history`
         );
         setModificationHistory(response.data);
         console.log('history', response.data);
@@ -223,7 +219,7 @@ useEffect(() => {
    const  handleDelete = async () => {
     try {
       const userId = localStorage.getItem('user_id')
-      const response = await axios.delete(`http://localhost:4000/ajouter/maintenance/${itemToDelete.id}`, {
+      const response = await axios.delete(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${itemToDelete.id}`, {
         data: { user_id: userId },  // Add the user ID here
       });
       console.log(response.data.message);
@@ -267,7 +263,7 @@ const handleSubmit = async (e) => {
    const toLocalISOString = (date) =>
   new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString();
     // Step 1: Send the PUT request
-    await axios.put(`http://localhost:4000/ajouter/maintenance/${selectedItem.id}`, {
+    await axios.put(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${selectedItem.id}`, {
       maintenance_type: form.maintenance_type.value,
       task_name: form.task_name.value,
       task_description: form.task_description.value,
@@ -282,11 +278,11 @@ const handleSubmit = async (e) => {
     });
 
     // Refresh maintenance list and history as before
-    const maintenanceResponse = await axios.get('http://localhost:4000/ajouter/maintenance');
+    const maintenanceResponse = await axios.get('https://machine-backend.azurewebsites.net/ajouter/maintenance');
     setData(maintenanceResponse.data);
 
     const historyResponse = await axios.get(
-      `http://localhost:4000/ajouter/maintenance/${selectedItem.id}/history`
+      `https://machine-backend.azurewebsites.net/ajouter/maintenance/${selectedItem.id}/history`
     );
 
     const parsedHistory = historyResponse.data.map(record => ({
