@@ -93,7 +93,7 @@ const Homepage = () => {
   const user_id = localStorage.getItem('user_id');
   const machinesPerPage = 12; // Fetch 4 cards per page
 
- const BASE_FILE_URL = 'http://localhost:4000/uploads/'; // replace with your actual backend URL
+ const BASE_FILE_URL = 'https://machine-backend.azurewebsites.net/uploads/'; // replace with your actual backend URL
 
 const fileLinks = [
   { label: '3D Files', key: 'files_3d' },
@@ -119,7 +119,7 @@ const textFields = [
   useEffect(() => {
     const fetchMachines = async () => {
       try {
-        const response = await axios.get("http://localhost:4000/ajouter/machines");
+        const response = await axios.get("https://machine-backend.azurewebsites.net/ajouter/machines");
         const validatedData = response.data.map(machine => ({
           ...machine,
           machine_ref: String(machine.machine_ref || '') // Ensure string type
@@ -144,7 +144,7 @@ const textFields = [
     // Fetch products when the component mounts
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:4000/ajouter/products');
+        const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/products');
         setProducts(response.data);
         console.log(response.data);
       } catch (error) {
@@ -248,7 +248,7 @@ const debouncedStationChange = useMemo(() =>
       });
   
       const response = await axios.put(
-        `http://localhost:4000/ajouter/machines/${updatedMachine.machine_id}`,
+        `https://machine-backend.azurewebsites.net/ajouter/machines/${updatedMachine.machine_id}`,
         formData,
         {
           headers: {
@@ -286,7 +286,7 @@ const debouncedStationChange = useMemo(() =>
       console.log("🚀 Extracted Stations:", stations);
   
       // Step 2: Fetch existing stations for comparison
-      const stationFetchRes = await fetch(`http://localhost:4000/ajouter/stations/${selectedMachineId}`);
+      const stationFetchRes = await fetch(`https://machine-backend.azurewebsites.net/ajouter/stations/${selectedMachineId}`);
       const existingStations = await stationFetchRes.json();
       console.log("Existing Stations from DB:", existingStations);
   
@@ -302,7 +302,7 @@ const debouncedStationChange = useMemo(() =>
   
       // Step 4: Perform deletions for stations that no longer exist
       await Promise.all(toDelete.map(async (station) => {
-        const deleteRes = await fetch(`http://localhost:4000/ajouter/stations/${station.id}`, {
+        const deleteRes = await fetch(`https://machine-backend.azurewebsites.net/ajouter/stations/${station.id}`, {
           method: 'DELETE',
         });
         if (!deleteRes.ok) throw new Error(`Failed to delete station ${station.id}`);
@@ -311,7 +311,7 @@ const debouncedStationChange = useMemo(() =>
   
       // Step 5: Add new stations that do not have IDs
       await Promise.all(toAdd.map(async (station) => {
-        const res = await fetch(`http://localhost:4000/ajouter/stations`, {
+        const res = await fetch(`https://machine-backend.azurewebsites.net/ajouter/stations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...station, machine_id: selectedMachineId, user_id: user_id }),
@@ -324,7 +324,7 @@ const debouncedStationChange = useMemo(() =>
 const toUpdate = stations.filter(s => s.id);  // Existing stations with an ID
 
 await Promise.all(toUpdate.map(async (station) => {
-  const res = await fetch(`http://localhost:4000/ajouter/stations/${station.id}`, {
+  const res = await fetch(`https://machine-backend.azurewebsites.net/ajouter/stations/${station.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -448,7 +448,7 @@ await Promise.all(toUpdate.map(async (station) => {
       if (userId) formPayload.append('user_id', userId);
   
       // Step 4: Send update request to the backend
-      const response = await fetch(`http://localhost:4000/ajouter/machines/${machineId}`, {
+      const response = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`, {
         method: 'PUT',
         body: formPayload,
       });
@@ -462,7 +462,7 @@ await Promise.all(toUpdate.map(async (station) => {
       console.log("Machine updated successfully:", updatedMachine);
   
       // Step 5: Fetch existing machine products
-      const existingProductsRes = await fetch(`http://localhost:4000/ajouter/machineproducts/${machineId}`);
+      const existingProductsRes = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machineproducts/${machineId}`);
       const existingProductData = await existingProductsRes.json();
       console.log("Existing products for this machine:", existingProductData);
   
@@ -488,7 +488,7 @@ await Promise.all(toUpdate.map(async (station) => {
   
       // Step 9: Delete products that are no longer selected
       await Promise.all(toDelete.map(async (productId) => {
-        const deleteResponse = await fetch(`http://localhost:4000/ajouter/machineproducts`, {
+        const deleteResponse = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machineproducts`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ machine_id: machineId, product_id: productId, user_id: userId }),
@@ -505,7 +505,7 @@ await Promise.all(toUpdate.map(async (station) => {
       console.log("Products to add:", toAdd);
   
       await Promise.all(toAdd.map(async (productId) => {
-        const addResponse = await fetch(`http://localhost:4000/ajouter/machineproducts`, {
+        const addResponse = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machineproducts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ machine_id: machineId, product_id: productId, user_id: userId }),
@@ -520,7 +520,7 @@ await Promise.all(toUpdate.map(async (station) => {
 
   
       // ✅ Refetch machines
-      const fetchResponse = await fetch("http://localhost:4000/ajouter/machines");
+      const fetchResponse = await fetch("https://machine-backend.azurewebsites.net/ajouter/machines");
       const fetchedMachines = await fetchResponse.json();
   
       const validatedData = fetchedMachines.map(machine => ({
@@ -564,7 +564,7 @@ await Promise.all(toUpdate.map(async (station) => {
   
   const fetchStationsByMachineId = async (machineId) => {
     try {
-      const res = await axios.get(`http://localhost:4000/ajouter/stations/${machineId}`);
+      const res = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/stations/${machineId}`);
       const stations = res.data;
       console.log('stationiddd', stations);
   
@@ -592,7 +592,7 @@ await Promise.all(toUpdate.map(async (station) => {
   
       // ... existing validation code ...
   
-      const response = await axios.post('http://localhost:4000/ajouter/Products', {
+      const response = await axios.post('https://machine-backend.azurewebsites.net/ajouter/Products', {
         ...values,
         user_id: parsedUserId,
       });
@@ -626,17 +626,17 @@ await Promise.all(toUpdate.map(async (station) => {
   
   const fetchMachineDetails = async (machineId) => {
     try {
-      const response = await axios.get(`http://localhost:4000/ajouter/machines/${machineId}`);
+      const response = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`);
       const data = response.data;
 
       console.log('data', data);
   
       // 2. Fetch only product_ids
-      const productRes = await axios.get(`http://localhost:4000/ajouter/machines/${machineId}/product-ids`);
+      const productRes = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}/product-ids`);
       const selectedProductIds = productRes.data.product_ids;
   
       // Optional: fetch all product options for the dropdown
-      const allProductsRes = await axios.get(`http://localhost:4000/ajouter/products`);
+      const allProductsRes = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/products`);
       const productOptions = allProductsRes.data.map(product => ({
         label: product.product_description,
         value: product.product_id,
@@ -649,37 +649,37 @@ await Promise.all(toUpdate.map(async (station) => {
         fume_extraction: data.fume_extraction ? 'Yes' : 'No',
         product_id: selectedProductIds,
         machineimagefile: data.machineimagefile
-          ? [{ uid: '-1', name: data.machineimagefile, url: `http://localhost:4000/uploads/${data.machineimagefile}` }]
+          ? [{ uid: '-1', name: data.machineimagefile, url: `https://machine-backend.azurewebsites.net/uploads/${data.machineimagefile}` }]
           : [],
         machine_manual: data.machine_manual
-          ? [{ uid: '-2', name: data.machine_manual, url: `http://localhost:4000/uploads/${data.machine_manual}` }]
+          ? [{ uid: '-2', name: data.machine_manual, url: `https://machine-backend.azurewebsites.net/uploads/${data.machine_manual}` }]
           : [],
         files_3d: data.files_3d
-          ? [{ uid: '-3', name: data.files_3d, url: `http://localhost:4000/uploads/${data.files_3d}` }]
+          ? [{ uid: '-3', name: data.files_3d, url: `https://machine-backend.azurewebsites.net/uploads/${data.files_3d}` }]
           : [],
         files_2d: data.files_2d
-          ? [{ uid: '-4', name: data.files_2d, url: `http://localhost:4000/uploads/${data.files_2d}` }]
+          ? [{ uid: '-4', name: data.files_2d, url: `https://machine-backend.azurewebsites.net/uploads/${data.files_2d}` }]
           : [],
         spare_parts_list: data.spare_parts_list
-          ? [{ uid: '-5', name: data.spare_parts_list, url: `http://localhost:4000/uploads/${data.spare_parts_list}` }]
+          ? [{ uid: '-5', name: data.spare_parts_list, url: `https://machine-backend.azurewebsites.net/uploads/${data.spare_parts_list}` }]
           : [],
         other_programs: data.other_programs
-          ? [{ uid: '-6', name: data.other_programs, url: `http://localhost:4000/uploads/${data.other_programs}` }]
+          ? [{ uid: '-6', name: data.other_programs, url: `https://machine-backend.azurewebsites.net/uploads/${data.other_programs}` }]
           : [],
         electrical_diagram: data.electrical_diagram
-          ? [{ uid: '-7', name: data.electrical_diagram, url: `http://localhost:4000/uploads/${data.electrical_diagram}` }]
+          ? [{ uid: '-7', name: data.electrical_diagram, url: `https://machine-backend.azurewebsites.net/uploads/${data.electrical_diagram}` }]
           : [],
         plc_program: data.plc_program
-          ? [{ uid: '-8', name: data.plc_program, url: `http://localhost:4000/uploads/${data.plc_program}` }]
+          ? [{ uid: '-8', name: data.plc_program, url: `https://machine-backend.azurewebsites.net/uploads/${data.plc_program}` }]
           : [],
         hmi_program: data.hmi_program
-          ? [{ uid: '-9', name: data.hmi_program, url: `http://localhost:4000/uploads/${data.hmi_program}` }]
+          ? [{ uid: '-9', name: data.hmi_program, url: `https://machine-backend.azurewebsites.net/uploads/${data.hmi_program}` }]
           : [],
         cpk_data: data.cpk_data
-          ? [{ uid: '-10', name: data.cpk_data, url: `http://localhost:4000/uploads/${data.cpk_data}` }]
+          ? [{ uid: '-10', name: data.cpk_data, url: `https://machine-backend.azurewebsites.net/uploads/${data.cpk_data}` }]
           : [],
         validation_document: data.validation_document
-          ? [{ uid: '-11', name: data.validation_document, url: `http://localhost:4000/uploads/${data.validation_document}` }]
+          ? [{ uid: '-11', name: data.validation_document, url: `https://machine-backend.azurewebsites.net/uploads/${data.validation_document}` }]
           : [],
       };
   
@@ -734,7 +734,7 @@ await Promise.all(toUpdate.map(async (station) => {
   const showModal = async (machine) => {
     try {
       const response = await axios.get(
-        `http://localhost:4000/ajouter/machineproducts/${machine.machine_id}`
+        `https://machine-backend.azurewebsites.net/ajouter/machineproducts/${machine.machine_id}`
       );
 
       // Validate and process string IDs
@@ -836,7 +836,7 @@ await Promise.all(toUpdate.map(async (station) => {
         <div className="card-content" style={{ textAlign: "center", padding: "20px" }}>
           <div className="card-image" style={{ marginBottom: "20px" }}>
             <img
-              src={machine.machineimagefile ? `http://localhost:4000/uploads/${machine.machineimagefile}` : "/fallback-image.jpg"}
+              src={machine.machineimagefile ? `https://machine-backend.azurewebsites.net/uploads/${machine.machineimagefile}` : "/fallback-image.jpg"}
               alt={machine.machine_name || "Machine"}
               onError={(e) => (e.target.src = "/fallback-image.jpg")}
               style={{ maxWidth: "100%", height: "auto" }}
@@ -989,7 +989,7 @@ await Promise.all(toUpdate.map(async (station) => {
       
       try {
         // Make the delete request to the backend, passing the user_id
-        const response = await axios.delete(`http://localhost:4000/ajouter/machines/${machineId}`, {
+        const response = await axios.delete(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`, {
           data: {
             user_id: userId // Pass the user_id in the body of the delete request
           }
@@ -1151,7 +1151,7 @@ await Promise.all(toUpdate.map(async (station) => {
       >
 
        {machine.machineimagefile ? (
-                  <img src={`http://localhost:4000/uploads/${machine.machineimagefile}`} alt="Machine" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginBottom: '10px' }} onError={handleImageError} />
+                  <img src={`https://machine-backend.azurewebsites.net/uploads/${machine.machineimagefile}`} alt="Machine" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginBottom: '10px' }} onError={handleImageError} />
                 ) : imageError ? (
                   <p style={{ color: 'red', marginTop: '10px' }}>Image not available</p>
                 ) : (
@@ -1316,7 +1316,7 @@ await Promise.all(toUpdate.map(async (station) => {
 
         
       {machine.machineimagefile ? (
-                  <img src={`http://localhost:4000/uploads/${machine.machineimagefile}`} alt="Machine" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginBottom: '10px' }} onError={handleImageError} />
+                  <img src={`https://machine-backend.azurewebsites.net/uploads/${machine.machineimagefile}`} alt="Machine" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginBottom: '10px' }} onError={handleImageError} />
                 ) : imageError ? (
                   <p style={{ color: 'red', marginTop: '10px' }}>Image not available</p>
                 ) : (
@@ -2197,7 +2197,7 @@ await Promise.all(toUpdate.map(async (station) => {
         if (!value) return Promise.resolve();
 
         // 👇 Replace this with your actual fetch to check product existence
-        const res = await fetch(`http://localhost:4000/ajouter/products/check-id/${value}`);
+        const res = await fetch(`https://machine-backend.azurewebsites.net/ajouter/products/check-id/${value}`);
         const data = await res.json();
 
         if (data.exists) {
