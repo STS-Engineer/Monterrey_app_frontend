@@ -4,7 +4,7 @@ import axios from 'axios';
 const Reviews = () => {
  
   return (
-
+   <div></div>
   );
 };
 
