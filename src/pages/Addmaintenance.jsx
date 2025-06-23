@@ -63,7 +63,7 @@ const managerId = localStorage.getItem('user_id');
  const creator = localStorage.getItem('user_id');
 
   useEffect(() => {
-      axios.get('http://localhost:4000/ajouter/users')
+      axios.get('https://machine-backend.azurewebsites.net/ajouter/users')
         .then(res => {
           setUsers(res.data);
         })
@@ -73,7 +73,7 @@ const managerId = localStorage.getItem('user_id');
 useEffect(() => {
   if (role === 'MANAGER' && managerId) {
     axios
-      .get(`http://localhost:4000/ajouter/team-executors/${managerId}`)
+      .get(`https://machine-backend.azurewebsites.net/ajouter/team-executors/${managerId}`)
       .then((res) => {
         setExecutors(res.data.executors || []);
       })
@@ -89,7 +89,7 @@ useEffect(() => {
 
 const fetchMaintenanceEvents = async () => {
   try {
-    const response = await axios.get('http://localhost:4000/ajouter/maintenance');
+    const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/maintenance');
     
     const formattedEvents = response.data.map(ev => {
       // Convert to Date objects
@@ -135,7 +135,7 @@ useEffect(() => {
 
 
   useEffect(() => {
-  fetch('http://localhost:4000/ajouter/machines')
+  fetch('https://machine-backend.azurewebsites.net/ajouter/machines')
     .then((response) => response.json())
     .then((data) => setMachines(data))
     .catch((error) => console.error('Error fetching machines:', error));
@@ -154,7 +154,7 @@ const fetchHistory = async (id) => {
   setLoadingHistory(true);
   try {
     const response = await axios.get(
-      `http://localhost:4000/ajouter/maintenance/${id}/history`
+      `https://machine-backend.azurewebsites.net/ajouter/maintenance/${id}/history`
     );
     setModificationHistory(response.data);
   } catch (error) {
@@ -178,7 +178,7 @@ const payload = {
 
 
   try {
-    const response = await fetch('http://localhost:4000/ajouter/maintenance', {
+    const response = await fetch('https://machine-backend.azurewebsites.net/ajouter/maintenance', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -721,7 +721,7 @@ return (
       console.log("Payload being sent:", payload);
 
       const response = await fetch(
-        `http://localhost:4000/ajouter/maintenance/${selectedEvent.id}`,
+        `https://machine-backend.azurewebsites.net/ajouter/maintenance/${selectedEvent.id}`,
         {
           method: "PUT",
           headers: {
