@@ -52,7 +52,7 @@ const filteredData = data.filter((item) => {
     let isMounted = true;
     const fetchMaintenance = async () => {
       try {
-        const response = await axios.get('http://localhost:4000/ajouter/maintenance');
+        const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/maintenance');
         if (isMounted) {
           setData(response.data);
           console.log('Maintenance data:', response.data);
@@ -73,7 +73,7 @@ const filteredData = data.filter((item) => {
     let isMounted = true;
     const fetchMachines = async () => {
       try {
-        const response = await axios.get('http://localhost:4000/ajouter/machines');
+        const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/machines');
         if (isMounted) {
           setMachines(response.data);
         }
@@ -93,7 +93,7 @@ const filteredData = data.filter((item) => {
     let isMounted = true;
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:4000/ajouter/users');
+        const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/users');
         if (isMounted) {
           setUsers(response.data);
         }
