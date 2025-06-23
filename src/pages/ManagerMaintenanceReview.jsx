@@ -50,8 +50,8 @@ useEffect(() => {
   const fetchInitialData = async () => {
     try {
       const [usersRes, machinesRes] = await Promise.all([
-        axios.get('http://localhost:4000/ajouter/users'),
-        axios.get('http://localhost:4000/ajouter/machines')
+        axios.get('https://machine-backend.azurewebsites.net/ajouter/users'),
+        axios.get('https://machine-backend.azurewebsites.net/ajouter/machines')
       ]);
       
       setUsers(usersRes.data);
@@ -85,7 +85,7 @@ const machineMap = useMemo(() => {
 
 const fetchReviews = async () => {
       try {
-        const res = await axios.get(`http://localhost:4000/ajouter/maintenance/reviews/pending/${managerId}`);
+        const res = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenance/reviews/pending/${managerId}`);
         setReviews(res.data);
         console.log('reviews', res.data);
       } catch (err) {
@@ -117,7 +117,7 @@ const fetchReviews = async () => {
 
 useEffect(() => {
   if (selectedReview) {
-    fetch('http://localhost:4000/ajouter/machines')
+    fetch('https://machine-backend.azurewebsites.net/ajouter/machines')
       .then(res => res.json())
       .then(data => {
         const matchedMachine = data.find(
@@ -134,7 +134,7 @@ useEffect(() => {
 
 
 useEffect(() => {
-  fetch('http://localhost:4000/ajouter/users')
+  fetch('https://machine-backend.azurewebsites.net/ajouter/users')
     .then((res) => res.json())
     .then((data) => {
       setUsers(data);
@@ -162,7 +162,7 @@ useEffect(() => {
 
 useEffect(() => {
   if (selectedReview?.maintenance_id) {
-    fetch('http://localhost:4000/ajouter/maintenance')
+    fetch('https://machine-backend.azurewebsites.net/ajouter/maintenance')
       .then((res) => res.json())
       .then((data) => {
         const matchedMaintenance = data.find(
@@ -182,7 +182,7 @@ useEffect(() => {
 
   const handleSelectReview = async (demandId) => {
     try {
-      const res = await axios.get(`http://localhost:4000/ajouter/maintenance/reviews/${demandId}`);
+      const res = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenance/reviews/${demandId}`);
       setSelectedReview(res.data);
       console.log('machine_id', res.data);
       setAlert({ message: '', severity: '' });
@@ -195,7 +195,7 @@ useEffect(() => {
 
   const handleResponse = async (response) => {
     try {
-      await axios.patch(`http://localhost:4000/ajouter/maintenance/reviews/${selectedReview.demand_id}`, {
+      await axios.patch(`https://machine-backend.azurewebsites.net/ajouter/maintenance/reviews/${selectedReview.demand_id}`, {
         response,
         feedback,
         user_id: managerId,
