@@ -27,7 +27,7 @@ const RoleAssignment = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/ajouter/users");
+      const res = await axios.get("https://machine-backend.azurewebsites.net/ajouter/users");
       setUsers(res.data);
     } catch (err) {
       console.error(err);
@@ -49,7 +49,7 @@ const RoleAssignment = () => {
     }
 
     try {
-      await axios.put(`http://localhost:4000/ajouter/update-role/${userId}`, {
+      await axios.put(`https://machine-backend.azurewebsites.net/ajouter/update-role/${userId}`, {
         role: newRole,
       });
      setSnackbar({ open: true, message: `Role updated to ${newRole}`, severity: "success" });
