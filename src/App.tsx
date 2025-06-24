@@ -50,7 +50,7 @@ export default function App() {
       <Routes>
         {/* Protected Pages with Sidebar/Header Layout */}
         <Route element={<AppLayout />}>
-          <Route index path="/" element={<Home />} />
+          <Route index path="/" element={<SignIn />} />
 
           {/* Pages under layout */}
           <Route path="/profile" element={<UserProfiles />} />
