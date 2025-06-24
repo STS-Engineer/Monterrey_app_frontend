@@ -49,7 +49,7 @@ const navigate = useNavigate();
 const handleSubmit = async (e) => {
   e.preventDefault();
   try {
-    const response = await axios.post("http://localhost:4000/ajouter/register", {
+    const response = await axios.post("https://machine-backend.azurewebsites.net/ajouter/register", {
       email,
       password,
       role:'VIEWER'
