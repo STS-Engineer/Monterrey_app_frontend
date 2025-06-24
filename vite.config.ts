@@ -5,10 +5,28 @@ import svgr from "vite-plugin-svgr";
 export default defineConfig({
   plugins: [
     react(),
-    svgr()
+    svgr({
+      svgrOptions: {
+        icon: true,
+      },
+      include: "**/*.svg",
+      exportAsDefault: true,
+    }),
   ],
   build: {
-    assetsInlineLimit: 0, // Ensure all assets are external files
-    manifest: true // Generate manifest.json
+    assetsInlineLimit: 0,
+    manifest: true,
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+      }
+    }
+  },
+  server: {
+    headers: {
+      "Content-Type": "application/javascript",
+    },
   }
 });
