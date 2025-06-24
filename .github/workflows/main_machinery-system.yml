@@ -1,3 +1,11 @@
+name: Build and deploy Vite app to Azure Web App - Machinery-system
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,28 +26,30 @@ jobs:
 
       - name: Add web.config to dist folder
         run: |
-          echo '<configuration>
-          <system.webServer>
-            <staticContent>
-              <mimeMap fileExtension=".js" mimeType="application/javascript" />
-              <mimeMap fileExtension=".css" mimeType="text/css" />
-              <mimeMap fileExtension=".json" mimeType="application/json" />
-              <mimeMap fileExtension=".wasm" mimeType="application/wasm" />
-            </staticContent>
-            <rewrite>
-              <rules>
-                <rule name="SPA Vite Router" stopProcessing="true">
-                  <match url=".*" />
-                  <conditions logicalGrouping="MatchAll">
-                    <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                    <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-                  </conditions>
-                  <action type="Rewrite" url="/index.html" />
-                </rule>
-              </rules>
-            </rewrite>
-          </system.webServer>
-        </configuration>' > dist/web.config
+          cat <<EOF > dist/web.config
+          <configuration>
+            <system.webServer>
+              <staticContent>
+                <mimeMap fileExtension=".js" mimeType="application/javascript" />
+                <mimeMap fileExtension=".css" mimeType="text/css" />
+                <mimeMap fileExtension=".json" mimeType="application/json" />
+                <mimeMap fileExtension=".wasm" mimeType="application/wasm" />
+              </staticContent>
+              <rewrite>
+                <rules>
+                  <rule name="SPA Vite Router" stopProcessing="true">
+                    <match url=".*" />
+                    <conditions logicalGrouping="MatchAll">
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+                      <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+                    </conditions>
+                    <action type="Rewrite" url="/index.html" />
+                  </rule>
+                </rules>
+              </rewrite>
+            </system.webServer>
+          </configuration>
+          EOF
 
       - name: Zip artifact
         run: cd dist && zip -r ../release.zip .
@@ -47,7 +57,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
+          name: vite-app
           path: release.zip
 
   deploy:
@@ -59,7 +69,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: node-app
+          name: vite-app
 
       - name: Unzip artifact
         run: unzip release.zip
