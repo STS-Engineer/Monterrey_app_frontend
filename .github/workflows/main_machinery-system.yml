@@ -9,55 +9,34 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build Vite app
-        run: npm run build
-
-      - name: Add web.config to dist folder
+          node-version: '22.x'
+      - name: Disable CI checks
+        run: echo "CI=false" >> $GITHUB_ENV
+        
+      - name: npm install
         run: |
-          cat <<EOF > dist/web.config
-          <configuration>
-            <system.webServer>
-              <staticContent>
-                <mimeMap fileExtension=".js" mimeType="application/javascript" />
-                <mimeMap fileExtension=".css" mimeType="text/css" />
-                <mimeMap fileExtension=".json" mimeType="application/json" />
-                <mimeMap fileExtension=".wasm" mimeType="application/wasm" />
-              </staticContent>
-              <rewrite>
-                <rules>
-                  <rule name="SPA Vite Router" stopProcessing="true">
-                    <match url=".*" />
-                    <conditions logicalGrouping="MatchAll">
-                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                      <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-                    </conditions>
-                    <action type="Rewrite" url="/index.html" />
-                  </rule>
-                </rules>
-              </rewrite>
-            </system.webServer>
-          </configuration>
-          EOF
+          npm install
+      - name: npm  build
+        run: |
+          npm run build --if-present
+          
 
-      - name: Zip artifact
-        run: cd dist && zip -r ../release.zip .
+      - name: Zip artifact for deployment
+        run: zip release.zip ./* -r
 
-      - name: Upload artifact
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: vite-app
+          name: node-app
           path: release.zip
 
   deploy:
@@ -87,5 +66,5 @@ jobs:
         with:
           app-name: 'Machinery-system'
           slot-name: 'Production'
-          package: .
+          package: ./build
           
