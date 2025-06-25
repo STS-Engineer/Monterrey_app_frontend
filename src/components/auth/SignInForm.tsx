@@ -31,13 +31,13 @@ export default function SignInForm() {
       return;
       }
       if(response.data.role === 'ADMIN'){
-        navigate('/');
+        navigate('/home');
       } else if(response.data.role === 'VIEWER'){
-        navigate('/');
+        navigate('/home');
       } else if (response.data.role === 'EXECUTOR'){
-        navigate('/');
+        navigate('/home');
       }else if (response.data.role === 'MANAGER'){
-        navigate('/');
+        navigate('/home');
       }
     } catch (error) {
       alert("Invalid email or password. Please try again.");
