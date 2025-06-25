@@ -51,6 +51,7 @@ export default function App() {
          <Route index path="/" element={<SignIn />} />
         {/* Protected Pages with Sidebar/Header Layout */}
         <Route element={<AppLayout />}>
+          <Route path="/home" element={<Home />} />
           {/* Pages under layout */}
           <Route path="/profile" element={<UserProfiles />} />
           <Route path="/calendar" element={<Calendar />} />
