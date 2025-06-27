@@ -27,6 +27,7 @@ const Maintenancedetails = () => {
   const [debouncedTaskName, setDebouncedTaskName] = useState('');
   const [modificationHistory, setModificationHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [executors, setExecutors] = useState([]);
   const [editFormData, setEditFormData] = useState({
     start_date: null,
@@ -34,6 +35,7 @@ const Maintenancedetails = () => {
   });
   const [dateError, setDateError] = React.useState('');
   const formRef = useRef(null);
+  const [filteredData, setFilteredData] = useState([]);
 
  // Dynamically get unique maintenance types
   const maintenanceTypes = useMemo(() => {
@@ -41,15 +43,15 @@ const Maintenancedetails = () => {
   }, [data]);
 
     // Filtered data computation
-const filteredData = data.filter((item) => {
-  const matchesMaintenanceType =
-    !filterMaintenanceType || item.maintenance_type === filterMaintenanceType;
+// const filteredData = data.filter((item) => {
+//   const matchesMaintenanceType =
+//     !filterMaintenanceType || item.maintenance_type === filterMaintenanceType;
 
-  const matchesTaskName =
-    !debouncedTaskName || item.task_name?.toLowerCase().includes(debouncedTaskName.toLowerCase());
+//   const matchesTaskName =
+//     !debouncedTaskName || item.task_name?.toLowerCase().includes(debouncedTaskName.toLowerCase());
 
-  return matchesMaintenanceType && matchesTaskName;
-});
+//   return matchesMaintenanceType && matchesTaskName;
+// });
 
 const role = localStorage.getItem('role');
 const managerId = localStorage.getItem('user_id');
@@ -71,17 +73,35 @@ useEffect(() => {
   }
 }, [role, managerId]);
 
-
+useEffect(() => {
+  if (searchQuery.trim() === '') {
+    setFilteredData(data);
+  } else {
+    const filtered = data.filter(item => {
+      const matchesSearch = 
+        item.task_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.task_description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.task_status?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesMaintenanceType = !filterMaintenanceType || item.maintenance_type === filterMaintenanceType;
+      const matchesTaskName = !debouncedTaskName || item.task_name?.toLowerCase().includes(debouncedTaskName.toLowerCase());
+      
+      return matchesSearch && matchesMaintenanceType && matchesTaskName;
+    });
+    setFilteredData(filtered);
+  }
+}, [searchQuery, data, filterMaintenanceType, debouncedTaskName]);
   // Fetch Maintenance
 useEffect(() => {
   let isMounted = true;
   const fetchMaintenance = async () => {
     try {
-      const userId = localStorage.getItem('user_id'); // Or get from context/auth
+      const userId = localStorage.getItem('user_id');
       const role = localStorage.getItem('role'); 
-     const response = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenancee?userId=${userId}&role=${role}`);
+      const response = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenancee?userId=${userId}&role=${role}`);
       if (isMounted) {
         setData(response.data);
+        setFilteredData(response.data); // Initialize filteredData with fetched data
         console.log('Maintenance data:', response.data);
       }
     } catch (error) {
@@ -94,6 +114,7 @@ useEffect(() => {
     isMounted = false;
   };
 }, []);
+
 
 
   // Fetch Machines
@@ -370,9 +391,31 @@ const formatDateLocal = (dateString) => {
   return `${year}-${month}-${day}`;
 };
 
+
 return (
   <div className="p-6 bg-gray-50 min-h-screen">
-   
+    <div className="relative flex-1 mx-4 pb-9 ">
+  <input
+    type="text"
+    placeholder="Search tasks..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  <svg
+    className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
+  </svg>
+</div>
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Maintenance Records</h2>
