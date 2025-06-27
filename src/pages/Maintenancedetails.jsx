@@ -525,8 +525,8 @@ return (
                 </td>
                 <td className="px-2 py-1 text-gray-600 truncate max-w-[100px]">{getUserName(item.assigned_to)}</td>
                 <td className="px-2 py-1 text-gray-600 truncate max-w-[100px]">{getUserName(item.creator)}</td>
-                <td className="px-2 py-1 text-gray-600">{new Date(item.start_date).toLocaleDateString()}</td>
-                <td className="px-2 py-1 text-gray-600">{new Date(item.end_date).toLocaleDateString()}</td>
+                <td className="px-2 py-1 text-gray-600">{new Date(item.start_date).toLocaleString()}</td>
+                <td className="px-2 py-1 text-gray-600">{new Date(item.end_date).toLocaleString()}</td>
                 <td className="px-2 py-1 text-gray-600 truncate max-w-[100px]">{getMachineName(item.machine_id)}</td>
                 <td className="px-2 py-1 text-gray-600">
                   <div className="flex items-center gap-1">
