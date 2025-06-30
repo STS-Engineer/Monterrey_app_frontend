@@ -25,11 +25,6 @@ export default function SignInForm() {
         localStorage.setItem("user_id", response.data.user_id);
         
       }
-      // Email domain validation
-     if (!email.endsWith('@avocarbon.com')) {
-      alert("Email must be a corporate address ending with @avocarbon.com");
-      return;
-      }
       if(response.data.role === 'ADMIN'){
         navigate('/home');
       } else if(response.data.role === 'VIEWER'){
