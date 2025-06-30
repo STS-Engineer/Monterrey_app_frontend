@@ -25,27 +25,6 @@ const navigate = useNavigate();
     };
   }, []);
 
- const handleEmailChange = (e) => {
-    const value = e.target.value;
-    setEmail(value);
-
-    // Clear previous timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Set new timeout to validate after 700ms of no typing
-    typingTimeoutRef.current = setTimeout(() => {
-      if (value && !value.endsWith('@avocarbon.com')) {
-        setEmailError('Email must end with @avocarbon.com');
-      } else {
-        setEmailError('');
-      }
-    }, 2500);
-  };
-
-
-
 const handleSubmit = async (e) => {
   e.preventDefault();
   try {
@@ -127,7 +106,7 @@ const handleSubmit = async (e) => {
         type="email"
         id="email"
         value={email}
-        onChange={handleEmailChange}
+        onChange={(e) => setEmail(e.target.value)}
         placeholder="Enter your email"
       />
         {emailError && <p className="text-error-500 text-sm mt-1">{emailError}</p>}
