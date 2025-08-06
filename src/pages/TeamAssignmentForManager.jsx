@@ -33,11 +33,17 @@ const TeamAssignmentForManager = () => {
       setAssignedExecutors(assignedRes.data);
 
       // Get available executors (not assigned to any manager)
-      const availableRes = await axios.get(
-        "https://machine-backend.azurewebsites.net/ajouter/available-executors"
-      );
-      setAvailableExecutors(availableRes.data);
+     const availableRes = await axios.get(
+      "https://machine-backend.azurewebsites.net/ajouter/available-executors"
+       );
 
+   // Filter out executors that are already assigned to THIS manager
+    const assignedIds = assignedRes.data.map(executor => executor.user_id);
+    const filteredAvailable = availableRes.data.filter(
+     executor => !assignedIds.includes(executor.user_id)
+       );
+
+      setAvailableExecutors(filteredAvailable);
       // Initialize selected state for already assigned executors
       const initialSelected = {};
       assignedRes.data.forEach(executor => {
