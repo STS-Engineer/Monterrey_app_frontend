@@ -24,8 +24,8 @@ import { toast } from 'react-toastify';
 
 const Addmaintenance = () => {
   const [users, setUsers] = useState([]);
-  const [formData, setFormData] = useState({
-   maintenance_type: '',
+const [formData, setFormData] = useState({
+  maintenance_type: '',
   task_name: '',
   task_description: '',
   task_status: '',
@@ -35,15 +35,21 @@ const Addmaintenance = () => {
   completed_date: null,
   machine_id: '',
   recurrence: 'none',
-  interval: null,
-  recurrence_days: [], // for weekly: array of JS day numbers (0=Sun, 1=Mon, ..., 6=Sat)
+  interval: 1,
+  recurrence_days: [],
   recurrence_end_date: null,
 
-  // 🔥 Add these for monthly persistence
-   monthlyMode: 'day',       // 'day' or 'weekday'
-   monthlyDay: 1,         // e.g., 15
-   monthlyOrdinal: null,     // 'first' | 'second' | 'third' | 'fourth' | 'last'
-   monthlyWeekday: null,     // 0-6 (Sunday-Saturday)
+  // Use underscores to match your backend expectations
+  monthly_mode: 'day',
+  monthly_day: 1,
+  monthly_ordinal: 'first',
+  monthly_weekday: 1,
+  
+  yearly_mode: 'weekday',
+  yearly_month: 0,
+  yearly_day: 1,
+  yearly_ordinal: 'first',
+  yearly_weekday: 1,
 });
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -66,7 +72,7 @@ const Addmaintenance = () => {
   const [executors, setExecutors] = useState([]);
   const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
   const [tempRecurrenceConfig, setTempRecurrenceConfig] = useState({
-  interval: null,
+  interval: 1,
   days: [],
   endDate: null,
   monthlyMode: "day",         // "day" | "weekday"
@@ -75,7 +81,7 @@ const Addmaintenance = () => {
   monthlyWeekday: 1,
   
   // Yearly settings
-  yearlyMode: "day",          // "day" | "weekday"
+  yearlyMode: "weekday",          // "day" | "weekday"
   yearlyMonth: 0,             // 0=January, ... 11=December
   yearlyDay: 1,               // used when yearlyMode === "day"
   yearlyOrdinal: "first",     // "first" | "second" | "third" | "fourth" | "last"
@@ -117,63 +123,68 @@ const Addmaintenance = () => {
   }
 }, [formData.start_date, formData.recurrence]);
 
-
-
 const fetchMaintenanceEvents = async () => {
   try {
     const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/maintenance');
 
     const formattedEvents = response.data.flatMap(ev => {
-      // Convert ISO strings to Date objects
-      const startDate = new Date(ev.start_date);
-      const endDate = new Date(ev.end_date);
-      
-      if (ev.recurrence === 'none') {
-        // Single event
-        return [{
-          id: ev.id,
-          title: ev.task_name,
-          start: startDate,
-          end: endDate,
-          allDay: true,
-          extendedProps: {
-            maintenance_type: ev.maintenance_type,
-            task_description: ev.task_description,
-            assigned_to: ev.assigned_to,
-            task_status: ev.task_status,
-            machine_id: ev.machine_id,
-            isRecurring: false,
-          },
-          backgroundColor: '#3b82f6',
-          borderColor: '#2563eb',
-        }];
-      } else {
-        // Recurring events
-        const baseEvent = {
-          ...ev,
-          interval: ev.interval || 1,
-          weekdays: ev.weekdays || [],
-          recurrence_end_date: ev.recurrence_end_date ? new Date(ev.recurrence_end_date) : null,
-        };
+      try {
+        // Convert ISO strings to Date objects for the base event
+        const startDate = new Date(ev.start_date);
+        const endDate = new Date(ev.end_date);
+        
+        if (ev.recurrence === 'none') {
+          // Single event
+          return [{
+            id: ev.id,
+            title: ev.task_name,
+            start: startDate,
+            end: endDate,
+            allDay: true,
+            extendedProps: {
+              maintenance_type: ev.maintenance_type,
+              task_description: ev.task_description,
+              assigned_to: ev.assigned_to,
+              task_status: ev.task_status,
+              machine_id: ev.machine_id,
+              isRecurring: false,
+            },
+            backgroundColor: '#3b82f6',
+            borderColor: '#2563eb',
+          }];
+        } else {
+          // Recurring events - prepare the base event for generateRecurringEvents
+          const baseEvent = {
+            ...ev,
+            start_date: startDate, // Use Date object, not string
+            end_date: endDate,     // Use Date object, not string
+            interval: ev.interval || 1,
+            weekdays: ev.weekdays || [],
+            recurrence_end_date: ev.recurrence_end_date ? new Date(ev.recurrence_end_date) : null,
+          };
 
-        const instances = generateRecurringEvents(baseEvent);
-        return instances.map(instance => ({
-          id: `${ev.id}-${instance.start_date.getTime()}`,
-          title: ev.task_name,
-          start: instance.start_date,
-          end: instance.end_date,
-          allDay: true,
-          extendedProps: {
-            maintenance_type: ev.maintenance_type,
-            task_description: ev.task_description,
-            assigned_to: ev.assigned_to,
-            task_status: ev.task_status,
-            machine_id: ev.machine_id,
-            isRecurring: true,
-          },
-          backgroundColor: '#6b7280',
-          borderColor: '#4b5563',
-        }));
+          const instances = generateRecurringEvents(baseEvent);
+          return instances.map(instance => ({
+            id: `${ev.id}-${instance.start_date.getTime()}`,
+            title: ev.task_name,
+            start: instance.start_date,
+            end: instance.end_date,
+            allDay: true,
+            extendedProps: {
+              maintenance_type: ev.maintenance_type,
+              task_description: ev.task_description,
+              assigned_to: ev.assigned_to,
+              task_status: ev.task_status,
+              machine_id: ev.machine_id,
+              isRecurring: true,
+            },
+            backgroundColor: '#6b7280',
+            borderColor: '#4b5563',
+          }));
+        }
+      } catch (error) {
+        console.error('Error processing event:', ev, error);
+        return [];
       }
     });
 
@@ -247,20 +258,30 @@ const handleRecurrenceChange = (e) => {
   setIsRecurrenceModalOpen(value !== "none");
 };
 
-
-  const handleSaveRecurrence = () => {
-    if (formData.recurrence === 'weekly' && tempRecurrenceConfig.days.length === 0) {
-      message.error('Please select at least one day for weekly recurrence.');
-      return;
-    }
-    setFormData(prev => ({
-      ...prev,
-      interval: tempRecurrenceConfig.interval,
-      recurrence_days: tempRecurrenceConfig.days,
-      recurrence_end_date: tempRecurrenceConfig.endDate,
-    }));
-    setIsRecurrenceModalOpen(false);
-  };
+const handleSaveRecurrence = () => {
+  if (formData.recurrence === 'weekly' && tempRecurrenceConfig.days.length === 0) {
+    message.error('Please select at least one day for weekly recurrence.');
+    return;
+  }
+  
+  setFormData(prev => ({
+    ...prev,
+    interval: tempRecurrenceConfig.interval || 1,
+    recurrence_days: tempRecurrenceConfig.days,
+    recurrence_end_date: tempRecurrenceConfig.endDate,
+    monthly_mode: tempRecurrenceConfig.monthlyMode,
+    monthly_day: tempRecurrenceConfig.monthlyDay,
+    monthly_ordinal: tempRecurrenceConfig.monthlyOrdinal,
+    monthly_weekday: tempRecurrenceConfig.monthlyWeekday,
+    yearly_mode: tempRecurrenceConfig.yearlyMode,
+    yearly_month: tempRecurrenceConfig.yearlyMonth,
+    yearly_day: tempRecurrenceConfig.yearlyDay,
+    yearly_ordinal: tempRecurrenceConfig.yearlyOrdinal,
+    yearly_weekday: tempRecurrenceConfig.yearlyWeekday,
+  }));
+  
+  setIsRecurrenceModalOpen(false);
+};
 
   const handleCancelRecurrence = () => {
     setFormData(prev => ({ ...prev, recurrence: prevRecurrence }));
@@ -481,73 +502,99 @@ case 'yearly': {
   const interval = baseEvent.interval || 1;
 
   const getNthWeekdayOfMonth = (year, month, weekday, ordinal) => {
+    // Convert weekday to 0-6 (Sunday-Saturday)
+    const targetWeekday = parseInt(weekday);
+    
     if (ordinal === 'last') {
+      // Start from the last day of the month and go backwards
       let d = new Date(year, month + 1, 0);
-      while (d.getDay() !== weekday) d.setDate(d.getDate() - 1);
+      while (d.getDay() !== targetWeekday) {
+        d.setDate(d.getDate() - 1);
+      }
       return d;
     } else {
+      // For "first", "second", "third", "fourth"
       const ordinalMap = { first: 1, second: 2, third: 3, fourth: 4 };
-      let targetOrdinal = ordinalMap[ordinal] || 1;
+      const targetOccurrence = ordinalMap[ordinal] || 1;
+      
+      // Start from the first day of the month
       let d = new Date(year, month, 1);
-      let count = 0;
+      let occurrenceCount = 0;
+      
+      // Find the target occurrence of the weekday
       while (d.getMonth() === month) {
-        if (d.getDay() === weekday) count++;
-        if (count === targetOrdinal) return d;
+        if (d.getDay() === targetWeekday) {
+          occurrenceCount++;
+          if (occurrenceCount === targetOccurrence) {
+            return d;
+          }
+        }
         d.setDate(d.getDate() + 1);
       }
+      
+      // If we didn't find the exact occurrence (e.g., asking for 5th Monday),
+      // return the last found occurrence
+      return occurrenceCount > 0 ? new Date(year, month, d.getDate() - 1) : null;
     }
   };
 
   const buildYearlyDate = (year) => {
-    if (baseEvent.yearly_mode === 'day') {
-      // Option 1: Exact date (month + day)
-      const day = baseEvent.yearly_day || startDate.getDate();
-      const month = baseEvent.yearly_month ?? startDate.getMonth();
+    // Use the values from the event, fall back to defaults if not provided
+    const mode = baseEvent.yearly_mode || 'weekday'; // Default to weekday
+    const month = baseEvent.yearly_month !== undefined ? baseEvent.yearly_month : 0; // Default to January
+    const day = baseEvent.yearly_day || 1;
+    const ordinal = baseEvent.yearly_ordinal || 'first'; // Default to first
+    const weekday = baseEvent.yearly_weekday !== undefined ? baseEvent.yearly_weekday : 1; // Default to Monday
+
+    if (mode === 'day') {
+      // Exact date (month + day)
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      return new Date(year, month, Math.min(day, daysInMonth), startDate.getHours(), startDate.getMinutes());
-    } else if (baseEvent.yearly_mode === 'weekday') {
-      // Option 2: Nth weekday in month
-      const month = baseEvent.yearly_month ?? startDate.getMonth();
-      return getNthWeekdayOfMonth(year, month, baseEvent.yearly_weekday, baseEvent.yearly_ordinal);
+      const actualDay = Math.min(day, daysInMonth);
+      return new Date(year, month, actualDay);
+    } else if (mode === 'weekday') {
+      // Nth weekday in month
+      return getNthWeekdayOfMonth(year, month, weekday, ordinal);
     }
+    return null;
   };
 
   let year = startDate.getFullYear();
-  let d = buildYearlyDate(year);
+  let currentDate = buildYearlyDate(year);
 
-  // If the chosen date this year is before the actual start date, skip to next year
-  if (d < startDate) {
+  // If the generated date is before the start date, move to next year
+  if (currentDate && currentDate < startDate) {
     year += interval;
-    d = buildYearlyDate(year);
+    currentDate = buildYearlyDate(year);
   }
 
-  while ((!recurrenceEndDate || d <= recurrenceEndDate) && instanceCount < maxInstances) {
-    instances.push(new Date(d));
-    year += interval;
-    d = buildYearlyDate(year);
+  while (currentDate && (!recurrenceEndDate || currentDate <= recurrenceEndDate) && instanceCount < maxInstances) {
+    instances.push(new Date(currentDate));
     instanceCount++;
+    
+    year += interval;
+    currentDate = buildYearlyDate(year);
+    
+    // Safety check to prevent infinite loop
+    if (!currentDate || instanceCount >= maxInstances) break;
   }
-   break;
-  }
-
+  break;
+}
 
     default:
       instances.push(new Date(startDate));
       break;
   }
 
-  // Return Date objects in the event structure
+  // Calculate duration of original event
+  const duration = new Date(baseEvent.end_date) - new Date(baseEvent.start_date);
+
   return instances.map(date => ({
-    ...baseEvent,
-    start_date: date,                    // Date object
-    end_date: new Date(date.getTime() + 24 * 60 * 60 * 1000), // Date object
-    is_recurring: baseEvent.recurrence !== 'none'
+   ...baseEvent,
+   start_date: date,                                // Date object
+   end_date: new Date(date.getTime() + duration),   // Preserve duration
+   is_recurring: baseEvent.recurrence !== 'none'
   }));
-};
-
-
-
-
+  };
 
 
   const resetForm = () => {
@@ -647,9 +694,11 @@ case 'yearly': {
 const getRecurrenceDescription = () => {
   if (!formData.recurrence || formData.recurrence === "none") return "Does not repeat";
 
-  const interval = formData.recurrence === "quarterly" ? 3 : (formData.interval || 1);
+  const interval = tempRecurrenceConfig.interval || formData.interval || 1;
   const startDate = formData.start_date ? new Date(formData.start_date).toLocaleDateString() : "";
-  const endDate = formData.recurrence_end_date ? new Date(formData.recurrence_end_date).toLocaleDateString() : null;
+  const endDate = tempRecurrenceConfig.endDate || formData.recurrence_end_date 
+    ? new Date(tempRecurrenceConfig.endDate || formData.recurrence_end_date).toLocaleDateString() 
+    : null;
 
   let desc = "";
   const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -660,29 +709,55 @@ const getRecurrenceDescription = () => {
       break;
 
     case "weekly": {
-      const selectedDayNames = (formData.recurrence_days || [])
+      const selectedDays = tempRecurrenceConfig.days.length > 0 
+        ? tempRecurrenceConfig.days 
+        : (formData.recurrence_days && formData.recurrence_days.length > 0 ? formData.recurrence_days : []);
+      
+      const selectedDayNames = selectedDays
         .sort()
         .map(d => weekdays[d])
         .join(", ");
-      desc = `Occurs every ${interval} week${interval > 1 ? "s" : ""}${selectedDayNames ? " on " + selectedDayNames : ""} starting ${startDate}`;
+      
+      desc = selectedDayNames 
+        ? `Occurs every ${interval} week${interval > 1 ? "s" : ""} on ${selectedDayNames} starting ${startDate}`
+        : `Occurs every ${interval} week${interval > 1 ? "s" : ""} starting ${startDate}`;
       break;
     }
 
     case "monthly":
-      if (formData.monthlyMode === "day") {
-        desc = `Occurs every ${interval} month${interval > 1 ? "s" : ""} on day ${formData.monthlyDay} starting ${startDate}`;
+      // Check tempRecurrenceConfig first (for modal), then fall back to formData
+      const monthlyMode = tempRecurrenceConfig.monthlyMode || formData.monthly_mode || 'day';
+      
+      if (monthlyMode === "day") {
+        const day = tempRecurrenceConfig.monthlyDay || formData.monthly_day || 1;
+        desc = `Occurs every ${interval} month${interval > 1 ? "s" : ""} on day ${day} starting from ${startDate}`;
       } else {
-        desc = `Occurs every ${interval} month${interval > 1 ? "s" : ""} on the ${formData.monthlyOrdinal} ${weekdays[formData.monthlyWeekday]} starting ${startDate}`;
+        const ordinal = tempRecurrenceConfig.monthlyOrdinal || formData.monthly_ordinal || 'first';
+        const weekday = tempRecurrenceConfig.monthlyWeekday !== undefined 
+          ? tempRecurrenceConfig.monthlyWeekday 
+          : (formData.monthly_weekday !== undefined ? formData.monthly_weekday : 1);
+        
+        desc = `Occurs every ${interval} month${interval > 1 ? "s" : ""} on the ${ordinal} ${weekdays[weekday]} starting ${startDate}`;
       }
       break;
 
     case "yearly":
-      if (formData.yearlyMode === "day") {
-        desc = `Occurs every ${interval} year${interval > 1 ? "s" : ""} on ${new Date(2000, formData.yearlyMonth, formData.yearlyDay).toLocaleDateString(undefined, { month: "long", day: "numeric" })} starting ${startDate}`;
-      } else if (formData.yearlyMode === "weekday") {
-        desc = `Occurs every ${interval} year${interval > 1 ? "s" : ""} on the ${formData.yearlyOrdinal} ${weekdays[formData.yearlyWeekday]} of ${new Date(2000, formData.yearlyMonth, 1).toLocaleDateString(undefined, { month: "long" })} starting ${startDate}`;
+      // Check tempRecurrenceConfig first (for modal), then fall back to formData
+      const yearlyMode = tempRecurrenceConfig.yearlyMode || formData.yearly_mode || 'day';
+      
+      if (yearlyMode === "day") {
+        const month = tempRecurrenceConfig.yearlyMonth !== undefined ? tempRecurrenceConfig.yearlyMonth : (formData.yearly_month !== undefined ? formData.yearly_month : 0);
+        const day = tempRecurrenceConfig.yearlyDay || formData.yearly_day || 1;
+        const monthName = new Date(2000, month, 1).toLocaleDateString(undefined, { month: "long" });
+        desc = `Occurs every ${interval} year${interval > 1 ? "s" : ""} on ${monthName} ${day} starting from ${startDate}`;
       } else {
-        desc = `Occurs every ${interval} year${interval > 1 ? "s" : ""} starting ${startDate}`;
+        const month = tempRecurrenceConfig.yearlyMonth !== undefined ? tempRecurrenceConfig.yearlyMonth : (formData.yearly_month !== undefined ? formData.yearly_month : 0);
+        const ordinal = tempRecurrenceConfig.yearlyOrdinal || formData.yearly_ordinal || 'first';
+        const weekday = tempRecurrenceConfig.yearlyWeekday !== undefined 
+          ? tempRecurrenceConfig.yearlyWeekday 
+          : (formData.yearly_weekday !== undefined ? formData.yearly_weekday : 1);
+        const monthName = new Date(2000, month, 1).toLocaleDateString(undefined, { month: "long" });
+        desc = `Occurs every ${interval} year${interval > 1 ? "s" : ""} on the ${ordinal} ${weekdays[weekday]} of ${monthName} starting ${startDate}`;
       }
       break;
 
@@ -746,158 +821,252 @@ const getRecurrenceDescription = () => {
           )}
         />
       </div>
-      <div style={{ flex: 1, maxWidth: 300, backgroundColor: '#fff', width: '100%', maxWidth: '900px', margin: '0 auto', padding: '1rem', borderRadius: 16, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        <form onSubmit={handleSubmit}>
-          <h1 style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '20px', fontWeight: 'bold', paddingBottom: '2.5rem' }}>Add Maintenance</h1>
-          <div className="flex items-end space-x-4 p-2 bg-white shadow rounded-lg" style={{ position: 'relative', zIndex: 50, marginBottom: '1rem' }}>
-            <div className="flex flex-col" style={{ zIndex: 100 }}>
-              <label className="text-gray-700 font-medium mb-1">Start Date & Time</label>
-              <DatePicker
-                selected={formData.start_date}
-                onChange={(date) => setFormData(prev => ({ ...prev, start_date: date }))}
-                showTimeSelect
-                timeIntervals={15}
-                timeCaption="Time"
-                dateFormat="MMMM d, yyyy h:mm aa"
-                placeholderText="Select start date & time"
-                className="w-60 px-2 py-1 border rounded focus:outline-none focus:ring"
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex flex-col" style={{ zIndex: 100 }}>
-              <label className="text-gray-700 font-medium mb-1">End Date & Time</label>
-              <DatePicker
-                selected={formData.end_date}
-                onChange={(date) => setFormData(prev => ({ ...prev, end_date: date }))}
-                showTimeSelect
-                timeIntervals={15}
-                timeCaption="Time"
-                dateFormat="MMMM d, yyyy h:mm aa"
-                placeholderText="Select end date & time"
-                className="w-60 px-2 py-1 border rounded focus:outline-none focus:ring"
-                autoComplete="off"
-              />
-            </div>
-          </div>
-          <div className="form-field">
-         <select 
-         name="recurrence" 
-        value={formData.recurrence} 
+      <div
+  style={{
+    flex: 1,
+    maxWidth: 900,
+    width: '100%',
+    margin: '0 auto',
+    padding: '2rem',
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+  }}
+>
+  <form onSubmit={handleSubmit}>
+    <h1
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontSize: '22px',
+        fontWeight: 'bold',
+        marginBottom: '3rem',
+      }}
+    >
+      Add Maintenance
+    </h1>
+
+    <div
+      className="flex items-end space-x-6 p-4 bg-white shadow rounded-lg"
+      style={{ position: 'relative', zIndex: 50, marginBottom: '2rem' }}
+    >
+      <div className="flex flex-col" style={{ zIndex: 100 }}>
+        <label className="text-gray-700 font-medium mb-2">Start Date & Time</label>
+        <DatePicker
+          selected={formData.start_date}
+          onChange={(date) => setFormData((prev) => ({ ...prev, start_date: date }))}
+          showTimeSelect
+          timeIntervals={15}
+          timeCaption="Time"
+          dateFormat="MMMM d, yyyy h:mm aa"
+          placeholderText="Select start date & time"
+          className="w-64 px-3 py-2 border rounded focus:outline-none focus:ring"
+          autoComplete="off"
+        />
+      </div>
+      <div className="flex flex-col" style={{ zIndex: 100 }}>
+        <label className="text-gray-700 font-medium mb-2">End Date & Time</label>
+        <DatePicker
+          selected={formData.end_date}
+          onChange={(date) => setFormData((prev) => ({ ...prev, end_date: date }))}
+          showTimeSelect
+          timeIntervals={15}
+          timeCaption="Time"
+          dateFormat="MMMM d, yyyy h:mm aa"
+          placeholderText="Select end date & time"
+          className="w-64 px-3 py-2 border rounded focus:outline-none focus:ring"
+          autoComplete="off"
+        />
+      </div>
+    </div>
+
+    <div className="form-field" style={{ marginBottom: '2rem' }}>
+      <select
+        name="recurrence"
+        value={formData.recurrence}
         onChange={handleRecurrenceChange}
-       style={{ marginTop: '0.3rem', width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.3rem 0.5rem', fontSize: '0.875rem' }}
-         >
+        style={{
+          width: '100%',
+          border: '1px solid #d1d5db',
+          borderRadius: '8px',
+          padding: '0.5rem',
+          fontSize: '0.95rem',
+        }}
+      >
         <option value="none">Do Not Repeat</option>
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
         <option value="monthly">Monthly</option>
         <option value="yearly">Yearly</option>
-       </select>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', padding: '0.5rem 0' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151' }}>Task Name</label>
-              <input
-                type="text"
-                name="task_name"
-                value={formData.task_name}
-                onChange={handleChange}
-                required
-                style={{ marginTop: '0.2rem', width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.3rem 0.5rem', fontSize: '0.875rem' }}
-              />
-            </div>
-            <div style={{ position: 'relative', overflow: 'visible', zIndex: 10 }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151' }}>Maintenance Type</label>
-              <select
-                name="maintenance_type"
-                value={formData.maintenance_type}
-                onChange={handleChange}
-                required
-                style={{ marginTop: '0.3rem', width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.3rem 0.5rem', fontSize: '0.875rem', backgroundColor: '#fff', zIndex: 1000 }}
-              >
-                <option value="">Select type</option>
-                <option value="MechanicalInspection">Mechanical Inspection</option>
-                <option value="Electrical Inspection">Electrical Inspection</option>
-                <option value="Lubrication">Lubrication</option>
-                <option value="Calibration">Calibration</option>
-                <option value="Cleaning">Cleaning</option>
-                <option value="SoftwareUpdate">Software Update</option>
-                <option value="FilterReplacement">Filter Replacement</option>
-                <option value="CoolantSystemCheck">Coolant System Check</option>
-                <option value="Vibration Analysis">Vibration Analysis</option>
-                <option value="CarbonDustExtractionSystemCheck">Carbon Dust Extraction System Check</option>
-                <option value="ConveyorSystemCheck">Conveyor System Check</option>
-                <option value="SafetySensorCheck">Safety Sensor Check</option>
-                <option value="TemperatureControlSystemInspection">Temperature Control System Inspection</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151' }}>Machine</label>
-              <select
-                name="machine_id"
-                value={formData.machine_id}
-                onChange={handleChange}
-                required
-                style={{ marginTop: '0.3rem', width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.3rem 0.5rem', fontSize: '0.875rem' }}
-              >
-                <option value="">Select machine</option>
-                {machines.map((machine) => (
-                  <option key={machine.machine_id} value={machine.machine_id}>
-                    {machine.machine_name} {machine.machine_ref}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151' }}>Assigned To</label>
-              <select
-                name="assigned_to"
-                value={formData.assigned_to}
-                onChange={handleChange}
-                required
-                style={{ marginTop: '0.3rem', width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.3rem 0.5rem', fontSize: '0.875rem' }}
-              >
-                <option value="">Select</option>
-                {executors.map((user) => (
-                  <option key={user.user_id} value={user.user_id}>
-                    {user.email.split('@')[0]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151' }}>Notes</label>
-              <textarea
-                name="task_description"
-                value={formData.task_description}
-                onChange={handleChange}
-                rows="6"
-                style={{ marginTop: '0.3rem', width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0.5rem', fontSize: '0.875rem', resize: 'vertical' }}
-                required
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            style={{
-              marginTop: '1.5rem',
-              width: '100%',
-              backgroundColor: '#2563eb',
-              color: 'white',
-              padding: '0.6rem',
-              borderRadius: '8px',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              border: 'none',
-              transition: 'background-color 0.3s ease',
-            }}
-            onMouseOver={(e) => (e.target.style.backgroundColor = '#1e40af')}
-            onMouseOut={(e) => (e.target.style.backgroundColor = '#2563eb')}
-          >
-            Submit Task
-          </button>
-        </form>
+      </select>
+    </div>
+
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '2rem',
+        padding: '0.5rem 0',
+      }}
+    >
+      {/* Task Name */}
+      <div>
+        <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+          Task Name
+        </label>
+        <input
+          type="text"
+          name="task_name"
+          value={formData.task_name}
+          onChange={handleChange}
+          required
+          style={{
+            width: '100%',
+            border: '1px solid #d1d5db',
+            borderRadius: '8px',
+            padding: '0.5rem',
+            fontSize: '0.95rem',
+          }}
+        />
       </div>
+
+      {/* Maintenance Type */}
+      <div>
+        <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+          Maintenance Type
+        </label>
+        <select
+          name="maintenance_type"
+          value={formData.maintenance_type}
+          onChange={handleChange}
+          required
+          style={{
+            width: '100%',
+            border: '1px solid #d1d5db',
+            borderRadius: '8px',
+            padding: '0.5rem',
+            fontSize: '0.95rem',
+            backgroundColor: '#fff',
+          }}
+        >
+          <option value="">Select type</option>
+          <option value="MechanicalInspection">Mechanical Inspection</option>
+          <option value="Electrical Inspection">Electrical Inspection</option>
+          <option value="Lubrication">Lubrication</option>
+          <option value="Calibration">Calibration</option>
+          <option value="Cleaning">Cleaning</option>
+          <option value="SoftwareUpdate">Software Update</option>
+          <option value="FilterReplacement">Filter Replacement</option>
+          <option value="CoolantSystemCheck">Coolant System Check</option>
+          <option value="Vibration Analysis">Vibration Analysis</option>
+          <option value="CarbonDustExtractionSystemCheck">Carbon Dust Extraction System Check</option>
+          <option value="ConveyorSystemCheck">Conveyor System Check</option>
+          <option value="SafetySensorCheck">Safety Sensor Check</option>
+          <option value="TemperatureControlSystemInspection">Temperature Control System Inspection</option>
+        </select>
+      </div>
+
+      {/* Machine */}
+      <div>
+        <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+          Machine
+        </label>
+        <select
+          name="machine_id"
+          value={formData.machine_id}
+          onChange={handleChange}
+          required
+          style={{
+            width: '100%',
+            border: '1px solid #d1d5db',
+            borderRadius: '8px',
+            padding: '0.5rem',
+            fontSize: '0.95rem',
+          }}
+        >
+          <option value="">Select machine</option>
+          {machines.map((machine) => (
+            <option key={machine.machine_id} value={machine.machine_id}>
+              {machine.machine_name} {machine.machine_ref}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Assigned To */}
+      <div>
+        <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+          Assigned To
+        </label>
+        <select
+          name="assigned_to"
+          value={formData.assigned_to}
+          onChange={handleChange}
+          required
+          style={{
+            width: '100%',
+            border: '1px solid #d1d5db',
+            borderRadius: '8px',
+            padding: '0.5rem',
+            fontSize: '0.95rem',
+          }}
+        >
+          <option value="">Select</option>
+          {executors.map((user) => (
+            <option key={user.user_id} value={user.user_id}>
+              {user.email.split('@')[0]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Notes */}
+      <div style={{ gridColumn: '1 / -1' }}>
+        <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+          Notes
+        </label>
+        <textarea
+          name="task_description"
+          value={formData.task_description}
+          onChange={handleChange}
+          rows="6"
+          required
+          style={{
+            width: '100%',
+            border: '1px solid #d1d5db',
+            borderRadius: '8px',
+            padding: '0.6rem',
+            fontSize: '0.95rem',
+            resize: 'vertical',
+          }}
+        />
+      </div>
+    </div>
+
+    <button
+      type="submit"
+      style={{
+        marginTop: '2rem',
+        width: '100%',
+        backgroundColor: '#2563eb',
+        color: 'white',
+        padding: '0.7rem',
+        borderRadius: '8px',
+        fontSize: '0.95rem',
+        fontWeight: '600',
+        cursor: 'pointer',
+        border: 'none',
+        transition: 'background-color 0.3s ease',
+      }}
+      onMouseOver={(e) => (e.target.style.backgroundColor = '#1e40af')}
+      onMouseOut={(e) => (e.target.style.backgroundColor = '#2563eb')}
+    >
+      Submit Task
+    </button>
+  </form>
+</div>
+
 
       <Modal title="Maintenance Task Details" open={isModalOpen} onCancel={closeModal} footer={null} destroyOnClose>
         {selectedEvent && !isEditing ? (
@@ -1047,26 +1216,42 @@ const getRecurrenceDescription = () => {
   <span>{units[formData.recurrence]}</span>
 </div>
 
-          {formData.recurrence === 'weekly' && (
-            <div className="flex justify-between">
-              {dayLabels.map((label, idx) => (
-                <button
-                  key={idx}
-                  className={`w-8 h-8 rounded-full ${tempRecurrenceConfig.days.includes(dayValues[idx]) ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                  onClick={() => setTempRecurrenceConfig(prev => ({
-                    ...prev,
-                    days: prev.days.includes(dayValues[idx])
-                      ? prev.days.filter(d => d !== dayValues[idx])
-                      : [...prev.days, dayValues[idx]],
-                  }))}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {formData.recurrence === 'monthly' && (
+     {formData.recurrence === 'weekly' && (
+  <div>
+    <label className="block font-medium mb-2">Select days:</label>
+    <div className="flex justify-between mb-4">
+      {dayLabels.map((label, idx) => (
+        <button
+          key={idx}
+          type="button"
+          className={`w-8 h-8 rounded-full ${tempRecurrenceConfig.days.includes(dayValues[idx]) ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+          onClick={() => {
+            const newDays = tempRecurrenceConfig.days.includes(dayValues[idx])
+              ? tempRecurrenceConfig.days.filter(d => d !== dayValues[idx])
+              : [...tempRecurrenceConfig.days, dayValues[idx]];
+            
+            setTempRecurrenceConfig(prev => ({
+              ...prev,
+              days: newDays
+            }));
+            
+            // Also update formData to reflect the change immediately
+            setFormData(prev => ({
+              ...prev,
+              recurrence_days: newDays
+            }));
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+    <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+      {getRecurrenceDescription()}
+    </div>
+  </div>
+)}
+{formData.recurrence === 'monthly' && (
   <div className="space-y-3">
     <label className="block font-medium">Repeat on:</label>
 
@@ -1075,7 +1260,10 @@ const getRecurrenceDescription = () => {
       <input
         type="radio"
         checked={tempRecurrenceConfig.monthlyMode === 'day'}
-        onChange={() => setTempRecurrenceConfig(prev => ({ ...prev, monthlyMode: 'day' }))}
+        onChange={() => setTempRecurrenceConfig(prev => ({ 
+          ...prev, 
+          monthlyMode: 'day' 
+        }))}
       />
       <span>Day</span>
       <input
@@ -1084,7 +1272,10 @@ const getRecurrenceDescription = () => {
         max={31}
         value={tempRecurrenceConfig.monthlyDay}
         onChange={(e) =>
-          setTempRecurrenceConfig(prev => ({ ...prev, monthlyDay: parseInt(e.target.value) }))
+          setTempRecurrenceConfig(prev => ({ 
+            ...prev, 
+            monthlyDay: parseInt(e.target.value) 
+          }))
         }
         disabled={tempRecurrenceConfig.monthlyMode !== 'day'}
         className="w-16 border rounded p-1"
@@ -1096,14 +1287,22 @@ const getRecurrenceDescription = () => {
       <input
         type="radio"
         checked={tempRecurrenceConfig.monthlyMode === 'weekday'}
-        onChange={() => setTempRecurrenceConfig(prev => ({ ...prev, monthlyMode: 'weekday' }))}
+        onChange={() => setTempRecurrenceConfig(prev => ({ 
+          ...prev, 
+          monthlyMode: 'weekday',
+          monthlyOrdinal: prev.monthlyOrdinal || 'first',
+          monthlyWeekday: prev.monthlyWeekday || 1
+        }))}
       />
       <span>On the</span>
 
       <select
-        value={tempRecurrenceConfig.monthlyOrdinal}
+        value={tempRecurrenceConfig.monthlyOrdinal || 'first'}
         onChange={(e) =>
-          setTempRecurrenceConfig(prev => ({ ...prev, monthlyOrdinal: e.target.value }))
+          setTempRecurrenceConfig(prev => ({ 
+            ...prev, 
+            monthlyOrdinal: e.target.value 
+          }))
         }
         disabled={tempRecurrenceConfig.monthlyMode !== 'weekday'}
         className="border rounded p-1"
@@ -1116,9 +1315,12 @@ const getRecurrenceDescription = () => {
       </select>
 
       <select
-        value={tempRecurrenceConfig.monthlyWeekday}
+        value={tempRecurrenceConfig.monthlyWeekday || 1}
         onChange={(e) =>
-          setTempRecurrenceConfig(prev => ({ ...prev, monthlyWeekday: parseInt(e.target.value) }))
+          setTempRecurrenceConfig(prev => ({ 
+            ...prev, 
+            monthlyWeekday: parseInt(e.target.value) 
+          }))
         }
         disabled={tempRecurrenceConfig.monthlyMode !== 'weekday'}
         className="border rounded p-1"
@@ -1130,10 +1332,15 @@ const getRecurrenceDescription = () => {
         <option value={5}>Friday</option>
         <option value={6}>Saturday</option>
         <option value={0}>Sunday</option>
-        </select>
-        </div>
-        </div>
-        )}
+      </select>
+    </div>
+    
+    {/* Display the monthly recurrence description */}
+    <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded mt-2">
+      {getRecurrenceDescription()}
+    </div>
+  </div>
+)}
 
 
         {formData.recurrence === 'yearly' && (
