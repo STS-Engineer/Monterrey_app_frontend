@@ -223,35 +223,71 @@ const fetchMaintenanceEvents = async () => {
 const handleRecurrenceChange = (e) => {
   const value = e.target.value;
 
+  // Check if we're changing to the same recurrence type
+  const isSameRecurrenceType = value === formData.recurrence;
+  
+  // If it's the same type and not "none", open modal with existing data
+  if (isSameRecurrenceType && value !== "none") {
+    // Populate tempRecurrenceConfig with existing formData
+    setTempRecurrenceConfig({
+      interval: formData.interval || 1,
+      days: formData.recurrence_days || [],
+      endDate: formData.recurrence_end_date || null,
+      monthlyMode: formData.monthly_mode || 'day',
+      monthlyDay: formData.monthly_day || 1,
+      monthlyOrdinal: formData.monthly_ordinal || 'first',
+      monthlyWeekday: formData.monthly_weekday || 1,
+      yearlyMode: formData.yearly_mode || 'day',
+      yearlyMonth: formData.yearly_month || 0,
+      yearlyDay: formData.yearly_day || 1,
+      yearlyOrdinal: formData.yearly_ordinal || 'first',
+      yearlyWeekday: formData.yearly_weekday || 1,
+    });
+    
+    setIsRecurrenceModalOpen(true);
+    return; // Exit early since we're just reopening the modal
+  }
+
+  // For different recurrence types, reset appropriate fields
   const newFormData = { 
     ...formData, 
     recurrence: value,
-    recurrence_days: [],
-    recurrence_end_date: null,
   };
 
-  if (value === "yearly") {
-    // Force interval to 1 when yearly
-    newFormData.interval = 1;
+  // Only reset these fields when changing to a different recurrence type
+  if (value !== formData.recurrence) {
+    newFormData.recurrence_days = [];
+    newFormData.recurrence_end_date = null;
+    
+    if (value === "yearly") {
+      // Force interval to 1 when yearly
+      newFormData.interval = 1;
 
-    if (formData.start_date) {
-      const startDate = new Date(formData.start_date);
-      const endDate = new Date(startDate);
-      endDate.setFullYear(endDate.getFullYear() + 1);
-      newFormData.recurrence_end_date = endDate;
+      if (formData.start_date) {
+        const startDate = new Date(formData.start_date);
+        const endDate = new Date(startDate);
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        newFormData.recurrence_end_date = endDate;
+      }
     }
-  } else {
-    // Keep whatever interval user already typed for daily/weekly/monthly
-    newFormData.interval = formData.interval ?? null;
   }
 
   setFormData(newFormData);
 
-  setPrevRecurrence(formData.recurrence);
+  // Set up temp config for the modal
   setTempRecurrenceConfig({
-    interval: newFormData.interval,
-    days: [],
-    endDate: newFormData.recurrence_end_date,
+    interval: newFormData.interval || 1,
+    days: newFormData.recurrence_days || [],
+    endDate: newFormData.recurrence_end_date || null,
+    monthlyMode: formData.monthly_mode || 'day',
+    monthlyDay: formData.monthly_day || 1,
+    monthlyOrdinal: formData.monthly_ordinal || 'first',
+    monthlyWeekday: formData.monthly_weekday || 1,
+    yearlyMode: formData.yearly_mode || 'day',
+    yearlyMonth: formData.yearly_month || 0,
+    yearlyDay: formData.yearly_day || 1,
+    yearlyOrdinal: formData.yearly_ordinal || 'first',
+    yearlyWeekday: formData.yearly_weekday || 1,
   });
 
   // Open modal only for recurrence types other than "none"
@@ -353,19 +389,9 @@ const handleSaveRecurrence = () => {
 
     // Always POST just once
     const response = await axios.post('https://machine-backend.azurewebsites.net/ajouter/maintenance', payload);
-
-    // Expand events locally for calendar display
-    const baseEvent = response.data;
-    let eventsToDisplay = [];
-
-    if (baseEvent.recurrence === 'none') {
-      eventsToDisplay = [createEventObject(baseEvent)];
-    } else {
-      const instances = generateRecurringEvents(baseEvent); // this handles interval logic
-      eventsToDisplay = instances.map(createEventObject);
-    }
-
-    setEvents(prev => [...prev, ...eventsToDisplay]);
+   
+    // Just refresh from backend to stay consistent
+    await fetchMaintenanceEvents();
     toast.success("Maintenance task added!", { position: "bottom-right" });
 
     resetForm();
@@ -680,7 +706,7 @@ case 'yearly': {
     return <div>Loading maintenance calendar...</div>;
   }
 
-  const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const dayValues = [1, 2, 3, 4, 5, 6, 0];
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -693,12 +719,21 @@ case 'yearly': {
 
 const getRecurrenceDescription = () => {
   if (!formData.recurrence || formData.recurrence === "none") return "Does not repeat";
-
+  const formatDate = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2); // take last 2 digits
+  return `${month}/${day}/${year}`;
+ };
   const interval = tempRecurrenceConfig.interval || formData.interval || 1;
-  const startDate = formData.start_date ? new Date(formData.start_date).toLocaleDateString() : "";
-  const endDate = tempRecurrenceConfig.endDate || formData.recurrence_end_date 
-    ? new Date(tempRecurrenceConfig.endDate || formData.recurrence_end_date).toLocaleDateString() 
-    : null;
+  const startDate = formData.start_date ? formatDate(formData.start_date) : "";
+  const endDate = tempRecurrenceConfig.endDate
+  ? formatDate(tempRecurrenceConfig.endDate)
+  : formData.recurrence_end_date
+  ? formatDate(formData.recurrence_end_date)
+  : "";
 
   let desc = "";
   const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -881,27 +916,46 @@ const getRecurrenceDescription = () => {
       </div>
     </div>
 
-    <div className="form-field" style={{ marginBottom: '2rem' }}>
-      <select
-        name="recurrence"
-        value={formData.recurrence}
-        onChange={handleRecurrenceChange}
-        style={{
-          width: '100%',
-          border: '1px solid #d1d5db',
-          borderRadius: '8px',
-          padding: '0.5rem',
-          fontSize: '0.95rem',
-        }}
-      >
-        <option value="none">Do Not Repeat</option>
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="monthly">Monthly</option>
-        <option value="yearly">Yearly</option>
-      </select>
-    </div>
-
+<div className="form-field" style={{ marginBottom: '2rem' }}>
+  <select
+    name="recurrence"
+    value={formData.recurrence}
+    onChange={handleRecurrenceChange}
+    onClick={(e) => {
+      // If clicking the already selected option, open modal with existing data
+      if (e.target.value === formData.recurrence && formData.recurrence !== 'none') {
+        setTempRecurrenceConfig({
+          interval: formData.interval || 1,
+          days: formData.recurrence_days || [],
+          endDate: formData.recurrence_end_date || null,
+          monthlyMode: formData.monthly_mode || 'day',
+          monthlyDay: formData.monthly_day || 1,
+          monthlyOrdinal: formData.monthly_ordinal || 'first',
+          monthlyWeekday: formData.monthly_weekday || 1,
+          yearlyMode: formData.yearly_mode || 'day',
+          yearlyMonth: formData.yearly_month || 0,
+          yearlyDay: formData.yearly_day || 1,
+          yearlyOrdinal: formData.yearly_ordinal || 'first',
+          yearlyWeekday: formData.yearly_weekday || 1,
+        });
+        setIsRecurrenceModalOpen(true);
+      }
+    }}
+    style={{
+      width: '100%',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      padding: '0.5rem',
+      fontSize: '0.95rem',
+    }}
+  >
+    <option value="none">Do Not Repeat</option>
+    <option value="daily">Daily</option>
+    <option value="weekly">Weekly</option>
+    <option value="monthly">Monthly</option>
+    <option value="yearly">Yearly</option>
+  </select>
+</div>
     <div
       style={{
         display: 'grid',
