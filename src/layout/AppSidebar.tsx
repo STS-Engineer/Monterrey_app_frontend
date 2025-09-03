@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState  } from "react";
 import { Link, useLocation } from "react-router";
 import { Factory, WrenchScrewdriver } from 'lucide-react';
 import maintenanceImg from "../../public/images/repairing-tool.png";
+import failureImg from "../../public/images/disruption.png";
 import machineImg from "../../public/images/machinelogo.png";
 import Systemimg from "../../public/images/alerte (2).png";
 
@@ -34,6 +35,11 @@ type NavItem = {
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean; roles?: string[] }[];
   roles?: string[]; // <-- NEW
 };
+
+const FailureIcon = (
+  <img src={failureImg} alt="Maintenance" className="w-[30px] h-[28px]" />
+);
+
 const MaintenanceIcon = (
   <img src={maintenanceImg} alt="Maintenance" className="w-[30px] h-[28px]" />
 );
@@ -79,6 +85,17 @@ const navItems: NavItem[] = [
       { name: "View Maintenance Task", path: "/maintenancedetails", roles: ["ADMIN", "MANAGER", "EXECUTOR"] },
       { name: "My Tasks & Responses", path: "/executorrequest", roles: ["EXECUTOR", "MANAGER","ADMIN"] },
       { name: "Pending Validations", path: "/manager/reviews", roles: ["MANAGER", "EXECUTOR", "ADMIN"] },
+    ],
+  },
+  
+ {
+    icon: FailureIcon,
+    name: "Failure",
+    subItems: [
+      { name: "Create Failure Task", path: "/addfailure", roles: ["EXECUTOR", "ADMIN", "MANAGER"] },
+      { name: "Create Failure Task", path: "/addfailureviewer", roles: ["VIEWER"] },
+      { name: "View Failure Task", path: "/addfailure", roles: ["VIEWER"] },
+      { name: "View Failure Task", path: "/failuredetails", roles: ["ADMIN", "MANAGER", "EXECUTOR"] }
     ],
   },
 
