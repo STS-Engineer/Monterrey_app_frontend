@@ -92,10 +92,10 @@ const navItems: NavItem[] = [
     icon: FailureIcon,
     name: "Failure",
     subItems: [
-      { name: "Create Failure Task", path: "/addfailure", roles: ["EXECUTOR", "ADMIN", "MANAGER"] },
-      { name: "Create Failure Task", path: "/addfailureviewer", roles: ["VIEWER"] },
-      { name: "View Failure Task", path: "/addfailure", roles: ["VIEWER"] },
-      { name: "View Failure Task", path: "/failuredetails", roles: ["ADMIN", "MANAGER", "EXECUTOR"] }
+      { name: "Create Failure Record", path: "/addfailure", roles: ["EXECUTOR", "ADMIN", "MANAGER"] },
+      { name: "Create Failure Record", path: "/addfailureviewer", roles: ["VIEWER"] },
+      { name: "View Failure Record", path: "/addfailure", roles: ["VIEWER"] },
+      { name: "View Failure Record", path: "/failuredetails", roles: ["ADMIN", "MANAGER", "EXECUTOR"] }
     ],
   },
 
