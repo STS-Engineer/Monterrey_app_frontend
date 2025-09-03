@@ -34,7 +34,7 @@ import Viewmaintenaceviewer from "./pages/Viewmaintenanceviewer";
 import Addmaintenanceviewer from "./pages/Addmaintenaceviewer";
 import TeamAssignmentForManager from "./pages/TeamAssignmentForManager";
 import AlertTable from "./pages/AlertTable";
-
+import Addfailure from "./pages/Addfailure";
 
 
 
@@ -82,7 +82,8 @@ export default function App() {
           {/*ManagerMaintenaceReview*/}
           <Route path="/manager/reviews" element={<ManagerReviewPanel managerId={currentUser} />} />
 
-         
+          {/*Failure*/}
+          <Route path="/addfailure" element={<Addfailure />} />
          {/*roleassign*/}
           <Route path="/roleassign" element={<RoleAssignment />} />
            <Route path="/teamassignment" element={<TeamAssignmentForManager />} />
