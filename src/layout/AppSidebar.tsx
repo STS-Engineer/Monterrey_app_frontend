@@ -95,7 +95,7 @@ const navItems: NavItem[] = [
       { name: "Create Failure Record", path: "/addfailure", roles: ["EXECUTOR", "ADMIN", "MANAGER"] },
       { name: "Create Failure Record", path: "/addfailureviewer", roles: ["VIEWER"] },
       { name: "View Failure Record", path: "/addfailure", roles: ["VIEWER"] },
-      { name: "View Failure Record", path: "/failuredetails", roles: ["ADMIN", "MANAGER", "EXECUTOR"] }
+      { name: "View Failure Record", path: "/failurelist", roles: ["ADMIN", "MANAGER", "EXECUTOR"] }
     ],
   },
 
