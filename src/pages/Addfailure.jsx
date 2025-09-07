@@ -8,8 +8,9 @@ const Addfailure = () => {
     solution: "",
     failure_date: null,
     status: "Pending",
+    executor: 0,
     creator: localStorage.getItem("user_id") || "",
-    machine_id: "", // <-- NEW field
+    machine_id: 0, 
   });
   const [machines, setMachines] = useState([]);
 
@@ -25,39 +26,45 @@ const Addfailure = () => {
       .catch((error) => console.error("Error fetching machines:", error));
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        ...formData,
-        failure_date: formData.failure_date
-          ? formData.failure_date.toISOString()
-          : null,
-      };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const payload = {
+      ...formData,
+      failure_date: formData.failure_date
+        ? formData.failure_date.toISOString()
+        : null,
+      user_id: localStorage.getItem("user_id"), // logged-in user
+      role: localStorage.getItem("role"),       // store role in localStorage at login
+    };
 
-      const response = await fetch("https://machine-backend.azurewebsites.net/ajouter/failure", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+    console.log("Submitting payload:", payload);
+
+    const response = await fetch("https://machine-backend.azurewebsites.net/ajouter/failure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      alert("Failure reported successfully ✅");
+      setFormData({
+        failure_desc: "",
+        solution: "",
+        failure_date: null,
+        status: "Pending",
+        machine_id: 0,
+        executor: 0,
+        creator: 0,
       });
-
-      if (response.ok) {
-        alert("Failure reported successfully ✅");
-        setFormData({
-          failure_desc: "",
-          solution: "",
-          failure_date: null,
-          status: "Pending",
-          creator: localStorage.getItem("user_id") || "",
-          machine_id: "",
-        });
-      } else {
-        console.error("Failed to submit failure");
-      }
-    } catch (err) {
-      console.error("Error:", err);
+    } else {
+      console.error("Failed to submit failure");
     }
-  };
+  } catch (err) {
+    console.error("Error:", err);
+  }
+};
+
 
   return (
     <div className="flex justify-center py-10 px-4 bg-gray-50 min-h-screen">
