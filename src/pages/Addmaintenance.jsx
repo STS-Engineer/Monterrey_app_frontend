@@ -154,14 +154,35 @@ const fetchMaintenanceEvents = async () => {
           }];
         } else {
           // Recurring events - prepare the base event for generateRecurringEvents
-          const baseEvent = {
-            ...ev,
-            start_date: startDate, // Use Date object, not string
-            end_date: endDate,     // Use Date object, not string
-            interval: ev.interval || 1,
-            weekdays: ev.weekdays || [],
-            recurrence_end_date: ev.recurrence_end_date ? new Date(ev.recurrence_end_date) : null,
-          };
+  const baseEvent = {
+  ...ev,
+  start_date: new Date(ev.start_date),
+  end_date: new Date(ev.end_date),
+  interval: ev.interval || 1,
+  weekdays: Array.isArray(ev.weekdays) ? ev.weekdays : [],
+
+  recurrence_end_date: ev.recurrence_end_date ? new Date(ev.recurrence_end_date) : null,
+
+  // ---- Monthly (both modes) ----
+  // pattern_variant from DB should be 'monthly_nth' for "nth weekday" and null/other for day-of-month
+  monthly_mode: ev.pattern_variant === 'monthly_nth' ? 'weekday' : 'day',
+  monthly_day: ev.monthly_day ?? null,           // e.g. 5
+  monthly_ordinal: ev.monthly_ordinal ?? null,   // e.g. 1..4 or -1
+  monthly_weekday: ev.monthly_weekday ?? null,   // 0..6 (Sun..Sat)         // 0..6
+
+  // ---- Yearly (both modes) ----
+  // If pattern_variant === 'monthly_nth' → 'weekday' mode, else 'day' mode
+  yearly_mode: ev.recurrence === 'yearly' && ev.pattern_variant === 'monthly_nth' ? 'weekday' : 'day',
+  yearly_month: (ev.yearly_month != null ? ev.yearly_month - 1 : new Date(ev.start_date).getMonth()), // to 0..11
+  yearly_day: ev.yearly_day ?? new Date(ev.start_date).getDate(),
+  yearly_ordinal: ev.yearly_ordinal ?? 'first',            // can be number or string; generator will handle both
+  yearly_weekday: ev.yearly_weekday ?? new Date(ev.start_date).getDay(),
+
+  // Keep recurrence kind
+  recurrence: ev.recurrence,
+  pattern_variant: ev.pattern_variant || null,
+};
+
 
           const instances = generateRecurringEvents(baseEvent);
           return instances.map(instance => ({
@@ -438,161 +459,102 @@ function getOrdinalWeek(date) {
   return "Last";
 }
 
-const generateRecurringEvents = (baseEvent) => {
+function generateRecurringEvents(baseEvent) {
   const instances = [];
+  const { recurrence, interval, recurrence_end_date } = baseEvent;
+
   const startDate = new Date(baseEvent.start_date);
-  const recurrenceEndDate = baseEvent.recurrence_end_date
-    ? new Date(baseEvent.recurrence_end_date)
-    : null;
+  const endDate = new Date(baseEvent.end_date);
+  const until = recurrence_end_date || new Date(startDate.getFullYear() + 5, 11, 31); // fallback max 5 years
 
-  const maxInstances = 100;
-  let instanceCount = 0;
+  let cursor = new Date(startDate);
 
-  // Helper: get nth weekday of a month
-  const getNthWeekdayOfMonth = (year, month, weekday, ordinal) => {
-    const ordinalMap = { first: 1, second: 2, third: 3, fourth: 4, last: -1 };
-    if (ordinal === 'last') {
-      let d = new Date(year, month + 1, 0);
-      while (d.getDay() !== weekday) d.setDate(d.getDate() - 1);
-      return d;
-    } else {
-      const targetOrdinal = ordinalMap[ordinal] || 1;
-      let d = new Date(year, month, 1);
-      let count = 0;
-      while (d.getMonth() === month) {
-        if (d.getDay() === weekday) count++;
-        if (count === targetOrdinal) return d;
-        d.setDate(d.getDate() + 1);
-      }
-      return null;
-    }
-  };
+  // Helper for nth weekday logic
+  function nthWeekdayOfMonth(year, month, weekday, ordinal) {
+    const firstDay = new Date(year, month, 1);
+    const firstWeekday = firstDay.getDay();
+    let day = 1 + ((7 + weekday - firstWeekday) % 7);
 
-  const duration = new Date(baseEvent.end_date) - new Date(baseEvent.start_date);
-
-  switch (baseEvent.recurrence) {
-    case 'daily': {
-      let d = new Date(startDate);
-      const interval = baseEvent.interval || 1;
-
-      while ((!recurrenceEndDate || d <= recurrenceEndDate) && instanceCount < maxInstances) {
-        instances.push(new Date(d));
-        d.setDate(d.getDate() + interval);
-        instanceCount++;
-      }
-      break;
+    if (ordinal > 0) {
+      day += (ordinal - 1) * 7;
+    } else if (ordinal === -1) {
+      // last weekday of month
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const lastDate = new Date(year, month, lastDay);
+      const lastWeekday = lastDate.getDay();
+      day = lastDay - ((7 + lastWeekday - weekday) % 7);
     }
 
-    case 'weekly': {
-      const days = baseEvent.weekdays.length ? baseEvent.weekdays : [startDate.getDay()];
-      const interval = baseEvent.interval || 1;
+    return new Date(year, month, day);
+  }
 
-      days.forEach((weekday) => {
-        let d = new Date(startDate);
-        const diff = (weekday - d.getDay() + 7) % 7;
-        d.setDate(d.getDate() + diff);
+  while (cursor <= until) {
+    let nextStart = null;
 
-        let weeklyCount = 0;
-        while ((!recurrenceEndDate || d <= recurrenceEndDate) && weeklyCount < maxInstances) {
-          instances.push(new Date(d));
-          d.setDate(d.getDate() + 7 * interval);
-          weeklyCount++;
+    if (recurrence === 'daily') {
+      nextStart = new Date(cursor);
+      cursor.setDate(cursor.getDate() + interval);
+
+    } else if (recurrence === 'weekly') {
+      baseEvent.weekdays.forEach(weekday => {
+        const temp = new Date(cursor);
+        temp.setDate(temp.getDate() + ((7 + weekday - temp.getDay()) % 7));
+        if (temp >= startDate && temp <= until) {
+          instances.push({
+            ...baseEvent,
+            start_date: temp,
+            end_date: new Date(temp.getTime() + (endDate - startDate)),
+          });
         }
       });
-      break;
+      cursor.setDate(cursor.getDate() + interval * 7);
+      continue;
+
+    } else if (recurrence === 'monthly') {
+      if (baseEvent.monthly_mode === 'day') {
+        // e.g., 5th of every month
+        nextStart = new Date(cursor.getFullYear(), cursor.getMonth(), baseEvent.monthly_day);
+
+      } else if (baseEvent.monthly_mode === 'weekday') {
+        // e.g., first Monday of every month
+        nextStart = nthWeekdayOfMonth(
+          cursor.getFullYear(),
+          cursor.getMonth(),
+          baseEvent.monthly_weekday,
+          baseEvent.monthly_ordinal
+        );
+      }
+      cursor.setMonth(cursor.getMonth() + interval);
+
+    } else if (recurrence === 'yearly') {
+      if (baseEvent.yearly_mode === 'day') {
+        // e.g., Jan 5 every year
+        nextStart = new Date(cursor.getFullYear(), baseEvent.yearly_month, baseEvent.yearly_day);
+
+      } else if (baseEvent.yearly_mode === 'weekday') {
+        // e.g., second Tuesday of January
+        nextStart = nthWeekdayOfMonth(
+          cursor.getFullYear(),
+          baseEvent.yearly_month,
+          baseEvent.yearly_weekday,
+          baseEvent.yearly_ordinal
+        );
+      }
+      cursor.setFullYear(cursor.getFullYear() + interval);
     }
 
-   case 'monthly': {
-  const interval = baseEvent.interval || 1;
-  const end = recurrenceEndDate;
-  let current = new Date(startDate);
-
-  while ((!end || current <= end) && instanceCount < maxInstances) {
-    let chosen = null;
-
-    if (baseEvent.monthly_day !== null && baseEvent.monthly_day !== undefined) {
-      const daysInMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
-      chosen = new Date(current.getFullYear(), current.getMonth(), Math.min(baseEvent.monthly_day, daysInMonth));
-    } else if (baseEvent.monthly_ordinal !== null && baseEvent.monthly_weekday !== null) {
-      const ordinalMap = { 1: 'first', 2: 'second', 3: 'third', 4: 'fourth', [-1]: 'last' };
-      const ordinalStr = typeof baseEvent.monthly_ordinal === 'number'
-        ? ordinalMap[baseEvent.monthly_ordinal]
-        : baseEvent.monthly_ordinal;
-      chosen = getNthWeekdayOfMonth(current.getFullYear(), current.getMonth(), baseEvent.monthly_weekday, ordinalStr);
+    if (nextStart && nextStart >= startDate && nextStart <= until) {
+      instances.push({
+        ...baseEvent,
+        start_date: nextStart,
+        end_date: new Date(nextStart.getTime() + (endDate - startDate)),
+      });
     }
-
-    // Add only **one event per month**
-    if (chosen && chosen >= startDate && (!end || chosen <= end)) {
-      instances.push(chosen);
-      instanceCount++;
-    }
-
-    // Move to the next interval month
-    current.setMonth(current.getMonth() + interval);
-
-    // Stop if next month is beyond recurrence_end_date
-    if (end && new Date(current.getFullYear(), current.getMonth(), 1) > end) break;
   }
 
-  break;
+  return instances;
 }
 
-case 'yearly': {
-  const interval = baseEvent.interval || 1;
-  const end = baseEvent.recurrence_end_date ? new Date(baseEvent.recurrence_end_date) : null;
-  let year = new Date(baseEvent.start_date).getFullYear();
-
-  const buildYearlyDate = (year) => {
-    const mode = baseEvent.yearly_mode || 'day';
-    const month = baseEvent.yearly_month ?? new Date(baseEvent.start_date).getMonth();
-    const day = baseEvent.yearly_day ?? new Date(baseEvent.start_date).getDate();
-    const ordinal = baseEvent.yearly_ordinal || 'first';
-    const weekday = baseEvent.yearly_weekday ?? new Date(baseEvent.start_date).getDay();
-
-    if (mode === 'day') {
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      return new Date(year, month, Math.min(day, daysInMonth));
-    } else {
-      const ordinalMap = { first: 1, second: 2, third: 3, fourth: 4, last: -1 };
-      return getNthWeekdayOfMonth(year, month, weekday, ordinalMap[ordinal]);
-    }
-  };
-
-  let currentDate = buildYearlyDate(year);
-
-  // Ensure the first occurrence is not before start_date
-  if (currentDate < new Date(baseEvent.start_date)) {
-    year += interval;
-    currentDate = buildYearlyDate(year);
-  }
-
-  // Generate events until **recurrence end date**
-  while (currentDate && (!end || currentDate <= end) && instanceCount < maxInstances) {
-    // Only include events **after or equal to start date** and before end
-    if (currentDate >= new Date(baseEvent.start_date) && (!end || currentDate <= end)) {
-      instances.push(new Date(currentDate));
-      instanceCount++;
-    }
-
-    year += interval;
-    currentDate = buildYearlyDate(year);
-  }
-
-  break;
-}
-
-    default:
-      instances.push(new Date(startDate));
-      break;
-  }
-
-  return instances.map((date) => ({
-    ...baseEvent,
-    start_date: date,
-    end_date: new Date(date.getTime() + duration),
-    is_recurring: baseEvent.recurrence !== 'none',
-  }));
-};
 
 
 
@@ -1369,8 +1331,7 @@ const getRecurrenceDescription = () => {
   </div>
 )}
 
-
-        {formData.recurrence === 'yearly' && (
+  {formData.recurrence === 'yearly' && (
   <div className="space-y-3">
     <label className="block font-medium">Repeat on:</label>
 
