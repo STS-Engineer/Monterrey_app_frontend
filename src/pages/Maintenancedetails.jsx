@@ -482,153 +482,43 @@ return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Maintenance Records</h2>
-        <div className="flex items-center gap-2 text-gray-600">
-               <div className="flex items-center gap-3" ref={filterRef}>
-                 <button
-                onClick={() => setShowFilterOptions(!showFilterOptions)}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-              >
-                      <svg
-              className="stroke-current fill-white dark:fill-gray-800"
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2.29004 5.90393H17.7067"
-                stroke=""
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M17.7075 14.0961H2.29085"
-                stroke=""
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12.0826 3.33331C13.5024 3.33331 14.6534 4.48431 14.6534 5.90414C14.6534 7.32398 13.5024 8.47498 12.0826 8.47498C10.6627 8.47498 9.51172 7.32398 9.51172 5.90415C9.51172 4.48432 10.6627 3.33331 12.0826 3.33331Z"
-                fill=""
-                stroke=""
-                strokeWidth="1.5"
-              />
-              <path
-                d="M7.91745 11.525C6.49762 11.525 5.34662 12.676 5.34662 14.0959C5.34661 15.5157 6.49762 16.6667 7.91745 16.6667C9.33728 16.6667 10.4883 15.5157 10.4883 14.0959C10.4883 12.676 9.33728 11.525 7.91745 11.525Z"
-                fill=""
-                stroke=""
-                strokeWidth="1.5"
-              />
-            </svg>
-                Filter
-              </button>
-            
-{showFilterOptions && (
-  <div className="absolute mt-2 w-80 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 p-4 z-50 right-0">
-    {/* Filter Type Select */}
-    <label className="block mb-2 font-semibold text-gray-700">Filter By:</label>
-    <select
-      value={filterType}
-      onChange={(e) => {
-        setFilterType(e.target.value);
-        setFilterValue(''); // reset value when filter changes
-      }}
-      className="w-full mb-3 rounded border-gray-300 px-3 py-2"
-    >
-      <option value="all">All</option>
-      <option value="task_name">Task Name</option>
-      <option value="maintenance_type">Maintenance Type</option>
-      <option value="date_range">Date Range</option>
-    </select>
+<div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
 
-    {/* Conditional inputs based on filterType */}
-    {filterType === 'task_name' && (
-      <>
-        <label className="block mb-1 text-gray-600">Task Name Contains:</label>
-        <input
-          type="text"
-          value={filterTaskName}
-          onChange={(e) => setFilterTaskName(e.target.value)}
-          className="w-full rounded border border-gray-300 px-3 py-2"
-          placeholder="Enter task name"
-        />
-      </>
-    )}
+  <div className="flex items-center gap-4">
+    
+    {/* Start Date */}
+    <div>
+      <label className="block mb-1 text-gray-600">Start Date:</label>
+      <DatePicker
+        selected={filterStartDate}
+        onChange={(date) => setFilterStartDate(date)}
+        selectsStart
+        startDate={filterStartDate}
+        endDate={filterEndDate}
+        className="w-full rounded border border-gray-300 px-3 py-2"
+        placeholderText="Select start date"
+      />
+    </div>
 
-    {filterType === 'maintenance_type' && (
-      <>
-        <label className="block mb-1 text-gray-600">Select Maintenance Type:</label>
-        <select
-          value={filterMaintenanceType}
-          onChange={(e) => setFilterMaintenanceType(e.target.value)}
-          className="w-full rounded border border-gray-300 px-3 py-2 mb-4"
-        >
-          <option value="">-- All Types --</option>
-          {maintenanceTypes.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-      </>
-    )}
+    {/* End Date */}
+    <div>
+      <label className="block mb-1 text-gray-600">End Date:</label>
+      <DatePicker
+        selected={filterEndDate}
+        onChange={(date) => setFilterEndDate(date)}
+        selectsEnd
+        startDate={filterStartDate}
+        endDate={filterEndDate}
+        minDate={filterStartDate}
+        className="w-full rounded border border-gray-300 px-3 py-2"
+        placeholderText="Select end date"
+      />
+    </div>
 
-    {filterType === 'date_range' && (
-      <div className="space-y-3">
-        <div>
-          <label className="block mb-1 text-gray-600">Start Date:</label>
-          <DatePicker
-            selected={filterStartDate}
-            onChange={(date) => setFilterStartDate(date)}
-            selectsStart
-            startDate={filterStartDate}
-            endDate={filterEndDate}
-            className="w-full rounded border border-gray-300 px-3 py-2"
-            placeholderText="Select start date"
-          />
-        </div>
-        <div>
-          <label className="block mb-1 text-gray-600">End Date:</label>
-          <DatePicker
-            selected={filterEndDate}
-            onChange={(date) => setFilterEndDate(date)}
-            selectsEnd
-            startDate={filterStartDate}
-            endDate={filterEndDate}
-            minDate={filterStartDate}
-            className="w-full rounded border border-gray-300 px-3 py-2"
-            placeholderText="Select end date"
-          />
-        </div>
-      </div>
-    )}
-
-    {/* Add a reset filter button */}
-   <button
-    onClick={() => {
-                  setFilterType("all");
-                  setFilterStartDate(null);
-                  setFilterEndDate(null);
-                  setShowFilterOptions(false);
-                }}
-  className="mt-3 w-full rounded bg-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-300"
->
-  Clear All Filters
-</button>
   </div>
-)}
+</div>
 
-              
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            See all
-          </button>
-        </div>
-         
-        </div>
-      </div>
+  </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
