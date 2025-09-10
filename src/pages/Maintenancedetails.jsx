@@ -36,7 +36,9 @@ const Maintenancedetails = () => {
   const [dateError, setDateError] = React.useState('');
   const formRef = useRef(null);
   const [filteredData, setFilteredData] = useState([]);
-
+  const [filterStartDate, setFilterStartDate] = useState(null);
+  const [filterEndDate, setFilterEndDate] = useState(null);
+  const filterRef = useRef(null);
  // Dynamically get unique maintenance types
   const maintenanceTypes = useMemo(() => {
     return Array.from(new Set(data.map(item => item.maintenance_type)));
@@ -53,9 +55,68 @@ const Maintenancedetails = () => {
 //   return matchesMaintenanceType && matchesTaskName;
 // });
 
+
+const filteredDataa = useMemo(() => {
+  return data.filter((item) => {
+    const matchesMaintenanceType =
+      !filterMaintenanceType || item.maintenance_type === filterMaintenanceType;
+
+    const matchesTaskName =
+      !debouncedTaskName || item.task_name?.toLowerCase().includes(debouncedTaskName.toLowerCase());
+    
+    // Date filtering logic
+    const itemStartDate = new Date(item.start_date);
+    const itemEndDate = new Date(item.end_date);
+    
+    let matchesStartDate = true;
+    let matchesEndDate = true;
+    
+    if (filterStartDate) {
+      // Compare only the date part (ignore time)
+      const filterStart = new Date(filterStartDate);
+      filterStart.setHours(0, 0, 0, 0);
+      const itemStart = new Date(itemStartDate);
+      itemStart.setHours(0, 0, 0, 0);
+      
+      matchesStartDate = itemStart >= filterStart;
+    }
+    
+    if (filterEndDate) {
+      // Compare only the date part (ignore time)
+      const filterEnd = new Date(filterEndDate);
+      filterEnd.setHours(23, 59, 59, 999); // End of the day
+      const itemEnd = new Date(itemEndDate);
+      itemEnd.setHours(23, 59, 59, 999);
+      
+      matchesEndDate = itemEnd <= filterEnd;
+    }
+
+    return matchesMaintenanceType && matchesTaskName && matchesStartDate && matchesEndDate;
+  });
+}, [data, filterMaintenanceType, debouncedTaskName, filterStartDate, filterEndDate]);
 const role = localStorage.getItem('role');
 const managerId = localStorage.getItem('user_id');
  const creator = localStorage.getItem('user_id');
+
+
+  // Close filter menu if clicked outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setShowFilterOptions(false);
+      }
+    }
+
+    if (showFilterOptions) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showFilterOptions]);
 
 useEffect(() => {
   if (role === 'MANAGER' && managerId) {
@@ -204,6 +265,8 @@ useEffect(() => {
     setSelectedItem(item);
     setModalType(type);
   };
+
+  
 
 
     const openModaldelete = (item, actionType) => {
@@ -420,7 +483,7 @@ return (
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Maintenance Records</h2>
         <div className="flex items-center gap-2 text-gray-600">
-               <div className="flex items-center gap-3">
+               <div className="flex items-center gap-3" ref={filterRef}>
                  <button
                 onClick={() => setShowFilterOptions(!showFilterOptions)}
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
@@ -463,70 +526,100 @@ return (
                 Filter
               </button>
             
-  {showFilterOptions && (
-    <div className="absolute mt-2 w-56 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 p-4 z-50">
-      {/* Filter Type Select */}
-      <label className="block mb-2 font-semibold text-gray-700">Filter By:</label>
-      <select
-        value={filterType}
-        onChange={(e) => {
-          setFilterType(e.target.value);
-          setFilterValue(''); // reset value when filter changes
-        }}
-        className="w-full mb-3 rounded border-gray-300 px-3 py-2"
-      >
-        <option value="all">All</option>
-        <option value="task_name">Task Name</option>
-        <option value="maintenance_type">Maintenance Type</option>
-      </select>
+{showFilterOptions && (
+  <div className="absolute mt-2 w-80 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 p-4 z-50 right-0">
+    {/* Filter Type Select */}
+    <label className="block mb-2 font-semibold text-gray-700">Filter By:</label>
+    <select
+      value={filterType}
+      onChange={(e) => {
+        setFilterType(e.target.value);
+        setFilterValue(''); // reset value when filter changes
+      }}
+      className="w-full mb-3 rounded border-gray-300 px-3 py-2"
+    >
+      <option value="all">All</option>
+      <option value="task_name">Task Name</option>
+      <option value="maintenance_type">Maintenance Type</option>
+      <option value="date_range">Date Range</option>
+    </select>
 
-      {/* Conditional input based on filterType */}
-{filterType === 'task_name' && (
-  <>
-    <label className="block mb-1 text-gray-600">Task Name Contains:</label>
-    <input
-      type="text"
-      value={filterTaskName}
-      onChange={(e) => setFilterTaskName(e.target.value)}
-      className="w-full rounded border border-gray-300 px-3 py-2"
-      placeholder="Enter task name"
-    />
-  </>
+    {/* Conditional inputs based on filterType */}
+    {filterType === 'task_name' && (
+      <>
+        <label className="block mb-1 text-gray-600">Task Name Contains:</label>
+        <input
+          type="text"
+          value={filterTaskName}
+          onChange={(e) => setFilterTaskName(e.target.value)}
+          className="w-full rounded border border-gray-300 px-3 py-2"
+          placeholder="Enter task name"
+        />
+      </>
+    )}
+
+    {filterType === 'maintenance_type' && (
+      <>
+        <label className="block mb-1 text-gray-600">Select Maintenance Type:</label>
+        <select
+          value={filterMaintenanceType}
+          onChange={(e) => setFilterMaintenanceType(e.target.value)}
+          className="w-full rounded border border-gray-300 px-3 py-2 mb-4"
+        >
+          <option value="">-- All Types --</option>
+          {maintenanceTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </>
+    )}
+
+    {filterType === 'date_range' && (
+      <div className="space-y-3">
+        <div>
+          <label className="block mb-1 text-gray-600">Start Date:</label>
+          <DatePicker
+            selected={filterStartDate}
+            onChange={(date) => setFilterStartDate(date)}
+            selectsStart
+            startDate={filterStartDate}
+            endDate={filterEndDate}
+            className="w-full rounded border border-gray-300 px-3 py-2"
+            placeholderText="Select start date"
+          />
+        </div>
+        <div>
+          <label className="block mb-1 text-gray-600">End Date:</label>
+          <DatePicker
+            selected={filterEndDate}
+            onChange={(date) => setFilterEndDate(date)}
+            selectsEnd
+            startDate={filterStartDate}
+            endDate={filterEndDate}
+            minDate={filterStartDate}
+            className="w-full rounded border border-gray-300 px-3 py-2"
+            placeholderText="Select end date"
+          />
+        </div>
+      </div>
+    )}
+
+    {/* Add a reset filter button */}
+   <button
+    onClick={() => {
+                  setFilterType("all");
+                  setFilterStartDate(null);
+                  setFilterEndDate(null);
+                  setShowFilterOptions(false);
+                }}
+  className="mt-3 w-full rounded bg-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-300"
+>
+  Clear All Filters
+</button>
+  </div>
 )}
-
-
-      {filterType === 'maintenance_type' && (
-        <>
-          <label className="block mb-1 text-gray-600">Select Maintenance Type:</label>
-                <select
-            value={filterMaintenanceType}
-            onChange={(e) => setFilterMaintenanceType(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 mb-4"
-          >
-            <option value="">-- All Types --</option>
-            {maintenanceTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-
-        </>
-      )}
-
-      {/* Add a reset filter button */}
-      <button
-        onClick={() => {
-          setFilterType('all');
-          setFilterValue('');
-          setShowFilterOptions(false);
-        }}
-        className="mt-3 w-full rounded bg-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-300"
-      >
-        Clear Filter
-      </button>
-    </div>
-  )}
 
               
           <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
@@ -549,7 +642,7 @@ return (
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredData.map((item) => (
+            {filteredDataa.map((item) => (
               <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-2 py-1 text-gray-900 font-medium">{item.maintenance_type}</td>
                 <td className="px-2 py-1 text-gray-900 font-medium truncate max-w-[120px]">{item.task_name}</td>
