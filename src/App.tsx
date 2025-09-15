@@ -38,7 +38,7 @@ import Addfailure from "./pages/Addfailure";
 import Failurelist from "./pages/FailureList";
 import MachineQRCode from "./pages/MachineQRCode";
 import MachinesQrcode from "./pages/AllMachinesQR";
-
+import MachineDetail from "./pages/MachineDetail";
 
 
 
@@ -79,6 +79,7 @@ export default function App() {
           <Route path="/machinelist" element={<Homepage />} />
           <Route path="/machineqr/:machineId" element={<MachineQRCodeWrapper />} />
           <Route path="/MachinesQrcodes" element={<MachinesQrcode />} />
+          <Route path="/machine/:machineId" element={<MachineDetail />} />
           <Route path="/addmaintenanceviewer" element={<Addmaintenanceviewer />} />
           <Route path="/maintenanceviewer" element={<Viewmaintenaceviewer />} />
           <Route path="/addmachineviewer" element={<Addmachineformviewer />} />
