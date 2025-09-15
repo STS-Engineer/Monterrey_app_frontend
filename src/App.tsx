@@ -36,12 +36,19 @@ import TeamAssignmentForManager from "./pages/TeamAssignmentForManager";
 import AlertTable from "./pages/AlertTable";
 import Addfailure from "./pages/Addfailure";
 import Failurelist from "./pages/FailureList";
+import MachineQRCode from "./pages/MachineQRCode";
+import MachinesQrcode from "./pages/AllMachinesQR";
 
 
 
 
 export default function App() {
   const currentUser = localStorage.getItem('user_id');
+    // Wrapper to extract machineId from URL
+  function MachineQRCodeWrapper() {
+  const { machineId } = useParams();
+  return <MachineQRCode machineId={machineId} />;
+   }
   return (
     <Router>
       <ScrollToTop />
@@ -70,7 +77,8 @@ export default function App() {
           <Route path="/addmachine" element={<AddMachineForm />} />
           <Route path="/maintenancehistory" element={<HistoricalTimeline />} />
           <Route path="/machinelist" element={<Homepage />} />
-             
+          <Route path="/machineqr/:machineId" element={<MachineQRCodeWrapper />} />
+          <Route path="/MachinesQrcodes" element={<MachinesQrcode />} />
           <Route path="/addmaintenanceviewer" element={<Addmaintenanceviewer />} />
           <Route path="/maintenanceviewer" element={<Viewmaintenaceviewer />} />
           <Route path="/addmachineviewer" element={<Addmachineformviewer />} />
