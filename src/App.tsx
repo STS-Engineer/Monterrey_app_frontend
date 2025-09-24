@@ -79,7 +79,7 @@ export default function App() {
           <Route path="/machinelist" element={<Homepage />} />
           <Route path="/machineqr/:machineId" element={<MachineQRCodeWrapper />} />
           <Route path="/MachinesQrcodes" element={<MachinesQrcode />} />
-          <Route path="/machines/:id" element={<MachineDetail />} />
+          <Route path="/machine/:id" element={<MachineDetail />} />
           <Route path="/addmaintenanceviewer" element={<Addmaintenanceviewer />} />
           <Route path="/maintenanceviewer" element={<Viewmaintenaceviewer />} />
           <Route path="/addmachineviewer" element={<Addmachineformviewer />} />
