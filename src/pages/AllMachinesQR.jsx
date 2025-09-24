@@ -38,7 +38,7 @@ export default function AllMachinesQR() {
               textAlign: "center",
             }}
           >
-            <h4>{machine.name}</h4>
+            <h4>{machine.machine_name}</h4>
             <MachineQRCode machineId={machine.machine_id} />
           </div>
         ))}
