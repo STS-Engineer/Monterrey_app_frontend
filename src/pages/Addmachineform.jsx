@@ -1079,9 +1079,6 @@ message.warning("No products selected.");
               <Form.Item
                 label="Fixture Number"
                 name="fixture_numbers"
-                rules={[
-                  { pattern: /^\d+$/, message: 'Fixture Number must be a number' }
-                ]}
               >
                 <Input
                   value={formData.fixture_number}
@@ -1100,9 +1097,6 @@ message.warning("No products selected.");
               <Form.Item
                 label="Gage Number"
                 name="gage_numbers"
-                rules={[
-                  { pattern: /^\d+$/, message: 'Gage Number must be a number' }
-                ]}
               >
                 <Input
                   value={formData.gage_number}
@@ -1119,9 +1113,6 @@ message.warning("No products selected.");
               <Form.Item
                 label="Tooling Number"
                 name="tooling_numbers"
-                rules={[
-                  { pattern: /^\d+$/, message: 'Tooling Number must be a number' }
-                ]}
               >
                 <Input
                   value={formData.tooling_number}
@@ -1147,12 +1138,6 @@ message.warning("No products selected.");
             type="primary"
             htmlType="submit"
             disabled={
-              !formData.files_3d ||
-              !formData.files_2d ||
-              !formData.spare_parts_list ||
-              !formData.electrical_diagram ||
-              !formData.plc_program ||
-              !formData.hmi_program  ||
               !formData.fixture_number ||
               !formData.gage_number ||
               !formData.tooling_number
