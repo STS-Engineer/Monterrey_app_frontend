@@ -1063,7 +1063,6 @@ message.warning("No products selected.");
               <Form.Item
                 label="Consumables"
                 name="consumables"
-                rules={[{ required: true, message: 'Fixture number is required' }]}
               >
                 <Input
                   value={formData.consumables}
