@@ -694,7 +694,6 @@ message.warning("No products selected.");
           name="air_pressure"
           normalize={(value) => (value ? Number(value) : value)}
           rules={[
-            { required: true, message: 'Please enter air pressure' },
             { pattern: /^\d+$/, message: 'Must be a number' },
           ]}
         >
@@ -704,7 +703,7 @@ message.warning("No products selected.");
         <Form.Item
           label="Air Pressure Unit"
           name="air_pressure_unit"
-          rules={[{ required: true, message: 'Please select a unit' }]}
+     
         >
           <Select placeholder="Select unit" allowClear>
             <Option value="Bar">Bar</Option>
@@ -724,19 +723,16 @@ message.warning("No products selected.");
            <Input placeholder="Enter voltage" />
            </Form.Item>
             <Form.Item label="Phases" name="phases"    rules={[
-           
            { pattern: /^\d+$/, message: 'Phases must be a number' }
          ]}>
             <Input placeholder="Enter phases" />
              </Form.Item>
              <Form.Item label="Amperage" name="amperage" rules={[
-    { required: true, message: 'Amperage is required' },
     { pattern: /^\d+$/, message: 'Amperage must be a number' }
   ]}>
              <Input placeholder="Enter amperage" />
       </Form.Item>
      <Form.Item label="Frequency" name="frequency"   rules={[
-    { required: true, message: 'Frequency is required' },
     { pattern: /^\d+$/, message: 'Frequency must be a number' }
        ]}
         >
@@ -763,7 +759,6 @@ message.warning("No products selected.");
           normalize={(value) => (value ? Number(value) : value)}
           name="water_temp"
           rules={[
-            { required: true, message: 'Please enter water temperature' },
             { pattern: /^\d+$/, message: 'Must be a number' },
           ]}
         >
@@ -773,7 +768,6 @@ message.warning("No products selected.");
         <Form.Item
           label="Water Temperature Unit"
           name="water_temp_unit"
-          rules={[{ required: true, message: 'Please select a unit' }]}
         >
           <Select placeholder="Select unit" allowClear>
             <Option value="°C">°C</Option>
