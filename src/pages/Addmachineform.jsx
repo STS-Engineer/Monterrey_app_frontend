@@ -844,6 +844,7 @@ message.warning("No products selected.");
                 name="files_3d"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList || []}
+                rules={[]}
               >
                 <Upload
                   listType="picture-card"
@@ -871,6 +872,7 @@ message.warning("No products selected.");
                 name="files_2d"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList || []}
+                rules={[]}
               >
                 <Upload
                   listType="picture-card"
@@ -898,6 +900,7 @@ message.warning("No products selected.");
                 name="spare_parts_list"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList || []}
+                rules={[]}
               >
                 <Upload
                   listType="picture-card"
@@ -927,6 +930,7 @@ message.warning("No products selected.");
                 name="other_programs"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList || []}
+                rules={[]}
               >
                 <Upload
                   listType="picture-card"
@@ -956,6 +960,7 @@ message.warning("No products selected.");
                 name="electrical_diagram"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList || []}
+                rules={[]}
               >
                 <Upload
                   listType="picture-card"
@@ -983,6 +988,7 @@ message.warning("No products selected.");
                 name="machine_manual"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList || []}
+                rules={[]}
               >
                 <Upload
                   listType="picture-card"
@@ -1010,6 +1016,7 @@ message.warning("No products selected.");
                 name="plc_program"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList || []}
+                rules={[]}
               >
                 <Upload
                   listType="picture-card"
@@ -1037,6 +1044,7 @@ message.warning("No products selected.");
                 name="hmi_program"
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList || []}
+                rules={[]}
               >
                 <Upload
                   listType="picture-card"
