@@ -1173,7 +1173,6 @@ message.warning("No products selected.");
     <Form.Item
       label="CPK Data"
       name="cpk_data"
-      rules={[{ required: true, message: "CPK Data is required" }]}
       valuePropName="fileList"
       getValueFromEvent={(e) => e?.fileList || []}
     >
@@ -1191,7 +1190,6 @@ message.warning("No products selected.");
     <Form.Item
       label="Validation Document"
       name="validation_document"
-      rules={[{ required: true, message: "Validation Document is required" }]}
       valuePropName="fileList"
       getValueFromEvent={(e) => e?.fileList || []}
     >
@@ -1208,7 +1206,6 @@ message.warning("No products selected.");
     <Form.Item
       label="Parameter Studies"
       name="parameter_studies"
-      rules={[{ required: true, message: "parameter_studies Data is required" }]}
       valuePropName="fileList"
       getValueFromEvent={(e) => e?.fileList || []}
     >
@@ -1229,8 +1226,7 @@ message.warning("No products selected.");
             <Form.Item
               label="Production Rate"
               name="production_rate"
-              rules={[{ required: true, message: "Production Rate is required" },  
-                { pattern: /^\d+$/, message: 'Phases must be a number' }]}
+              
             >
               <Input
                 type="text"
