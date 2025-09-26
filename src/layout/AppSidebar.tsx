@@ -5,7 +5,7 @@ import maintenanceImg from "../../public/images/repairing-tool.png";
 import failureImg from "../../public/images/disruption.png";
 import machineImg from "../../public/images/machinelogo.png";
 import Systemimg from "../../public/images/alerte (2).png";
-import QRImg from "../../public/images/Example-QR-code.webp";
+
 
 
 // Assume these icons are imported from an icon library
@@ -53,9 +53,7 @@ const SystemAlertIcon = (
   <img src={Systemimg} alt="Machine Management" className="w-[28px] h-[28px]" />
 );
 
-const QRIcon = (
-  <img src={QRImg} alt="Maintenance" className="w-[30px] h-[28px]" />
-);
+
 
 const navItems: NavItem[] = [
   {
@@ -102,14 +100,6 @@ const navItems: NavItem[] = [
       { name: "View Failure Record", path: "/failurelist", roles: ["ADMIN", "MANAGER", "EXECUTOR"] }
     ],
   },
-   {
-    icon: QRIcon,
-    name: "QR Code",
-    subItems: [
-      { name: "View QR Code", path: "/MachinesQrcodes", roles: ["EXECUTOR", "ADMIN", "MANAGER"] },
-    ],
-  },
-
    {
     icon: SystemAlertIcon,
     name: "System Alerts",
