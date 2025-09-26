@@ -2,18 +2,19 @@ import React, { useState, useEffect, useCallback, useMemo  } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {Layout,  Modal, Steps, Form, Input, Upload, Button, Select, Switch, Row, Col, message, notification  } from "antd";
-import { EditOutlined, DeleteOutlined, FileTextOutlined, SettingOutlined, HistoryOutlined, IdcardOutlined, EnvironmentOutlined, ShopOutlined, AppstoreOutlined, CalendarOutlined, ToolOutlined, DashboardOutlined, BarcodeOutlined, UserOutlined, PlusOutlined, EyeOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, FileTextOutlined, SettingOutlined, HistoryOutlined, IdcardOutlined, EnvironmentOutlined, ShopOutlined, AppstoreOutlined, CalendarOutlined, ToolOutlined, DashboardOutlined, BarcodeOutlined, UserOutlined, PlusOutlined, EyeOutlined, QrcodeOutlined  } from '@ant-design/icons';
 import { 
   SearchOutlined
 } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import TextArea from 'antd/es/input/TextArea';
 import { debounce } from 'lodash';
-
+import MachineQRCode from './MachineQRCode'; // Adjust the path as needed
 
 const Homepage = () => {
   const navigate = useNavigate();
   const [machines, setMachines] = useState([]);
+  const [machine, setMachine] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [imageError, setImageError] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -81,6 +82,8 @@ const Homepage = () => {
    });
   const [airNeeded, setAirNeeded] = useState();
   const [watercooling, setWatercooling] = useState();
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [modificationHistory, setModificationHistory] = useState([]);
   const [stepValidity, setStepValidity] = useState({
     0: false,
     1: false,
@@ -88,6 +91,9 @@ const Homepage = () => {
     3: false,
   });
   const [selectedMachineId, setSelectedMachineId]= useState(null);
+    // Add QR code modal state
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [currentQrMachine, setCurrentQrMachine] = useState(null);
   // Inside your component
   const [formValues, setFormValues] = useState({}); // State to persist form values
   const user_id = localStorage.getItem('user_id');
@@ -133,7 +139,18 @@ const textFields = [
     fetchMachines();
   }, []);
 
-  
+  useEffect(() => {
+  if (selectedMachineId) {
+    fetch(`https://machine-backend.azurewebsites.net/ajouter/maintenance/history/${selectedMachineId}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log('Fetched maintenance history:', data);
+        setMachine(prev => ({ ...prev, maintenance_history: data }));
+      })
+      .catch(err => console.error('Error fetching history', err));
+  }
+}, [selectedMachineId]);
+
   useEffect(() => {
     form.setFieldsValue(formData);
   }, [formData]);
@@ -688,9 +705,13 @@ await Promise.all(toUpdate.map(async (station) => {
       form.setFieldsValue(updatedFormData); // ✅ explicitly update form fields
       await fetchStationsByMachineId(machineId); // ⬅️ Call this here
       setSelectedMachineId(machineId);
+       // Fetch maintenance history
+      const historyResponse = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${machineId}/history`);
+      setModificationHistory(historyResponse.data);
+      setLoadingHistory(false);
       setVisible(true);
 
-         // 👇 FORCING FIELD SYNC IMMEDIATELY
+      // 👇 FORCING FIELD SYNC IMMEDIATELY
       setTimeout(() => {
       form.setFieldsValue(updatedFormData);
       }, 100); // short delay ensures modal is mounted
@@ -748,7 +769,13 @@ await Promise.all(toUpdate.map(async (station) => {
         .filter(id => id && id.length > 0 && id !== 'null'); // Filter out 'null' strings
 
       console.log('Processed string product IDs:', processedProductIds);
+   // ✅ Fetch maintenance history
+    const historyRes = await axios.get(
+      `https://machine-backend.azurewebsites.net/ajouter/maintenance/${machine.machine_id}/history`
+    );
+    const maintenanceHistory = historyRes.data || [];
 
+    console.log('Maintenance history:', maintenanceHistory);
       // Set productIds in state
       setProductIds(processedProductIds);
 
@@ -784,170 +811,292 @@ await Promise.all(toUpdate.map(async (station) => {
 
   const { Header, Sider, Content } = Layout;
 
-  const Card = ({ machine, onDelete, onUpdate }) => {
-    const navigate = useNavigate();
-    
-  
-    // State for handling modals
-    const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
-    const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
-    const [updatedMachine, setUpdatedMachine] = useState(machine);
+const Card = ({ machine, onDelete, onUpdate }) => {
+  const navigate = useNavigate();
 
-  
-    // Function to close delete modal
-    const handleDeleteCancel = () => {
-      setDeleteModalVisible(false);
-    };
-  
+  // States
+  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
+  const [updatedMachine, setUpdatedMachine] = useState(machine);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [currentQrMachine, setCurrentQrMachine] = useState(null);
 
+  // QR Modal handlers
+  const handleQrCodeClick = (e) => {
+    e.stopPropagation();
+    setCurrentQrMachine(machine);
+    setQrModalVisible(true);
+  };
 
-    
-    
-  
-  
-    // Function to close update modal
-    const handleUpdateCancel = () => {
-      setUpdateModalVisible(false);
-    };
-  
-    // Function to handle update form submission
-    const handleUpdateSubmit = () => {
-      onUpdate(updatedMachine); // Pass updated machine details
-      setUpdateModalVisible(false);
-    };
-  
-    // Handle input changes for updating the machine
-    const handleInputChange = useCallback(
-      debounce((name, value) => {
-        setFormData((prevData) => ({
-          ...prevData,
-          [name]: value,
-        }));
-      }, 300), []);
+  const handleQrModalClose = () => {
+    setQrModalVisible(false);
+    setCurrentQrMachine(null);
+  };
 
-    const handleCardClick = (machine) => {
-      setSelectedMachine(machine);
-      setIsModalVisible(true);
-    };
- 
-    
-    return (
-      <div className="card" onClick={handleCardClick} style={{ marginTop: "10px", marginBottom: "10px" }}>
-        <div className="card-content" style={{ textAlign: "center", padding: "20px" }}>
-          <div className="card-image" style={{ marginBottom: "20px" }}>
-            <img
-              src={machine.machineimagefile ? `https://machine-backend.azurewebsites.net/uploads/${machine.machineimagefile}` : "/fallback-image.jpg"}
-              alt={machine.machine_name || "Machine"}
-              onError={(e) => (e.target.src = "/fallback-image.jpg")}
-              style={{ maxWidth: "100%", height: "auto" }}
-            />
-          </div>
-          <h3 style={{ color: "#2c3e50", fontSize: "1.5rem", fontWeight: "bold", marginBottom: "8px" }}>
-            {machine.machine_name || "Unknown Machine"}
-          </h3>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-              textAlign: "left",
-              maxWidth: "400px",
-            }}
-          >
-            <p><strong>Machine Reference:</strong> {machine.machine_ref || "N/A"}</p>
-            <p><strong>Brand:</strong> {machine.brand || "N/A"}</p>
-            <p><strong>Model:</strong> {machine.model || "N/A"}</p>
-            <p><strong>Product Line:</strong> {machine.product_line || "N/A"}</p>
-            <p><strong>Production Line:</strong> {machine.production_line || "N/A"}</p>
-          </div>
-  
-    
-  
-  
+  const downloadQRCode = () => {
+    const canvas = document.getElementById("qrcode-canvas");
+    if (canvas) {
+      const pngUrl = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = `machine-${machine.machine_ref}-qrcode.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
 
-          <button
+  // Delete handlers
+  const handleDeleteCancel = () => setDeleteModalVisible(false);
+
+  // Update handlers
+  const handleUpdateCancel = () => setUpdateModalVisible(false);
+
+  const handleUpdateSubmit = () => {
+    onUpdate(updatedMachine);
+    setUpdateModalVisible(false);
+  };
+
+  const handleInputChange = useCallback(
+    debounce((e) => {
+      const { name, value } = e.target;
+      setUpdatedMachine((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }, 300),
+    []
+  );
+
+  // Card click
+  const handleCardClick = () => {
+    // open machine details modal (if you have it elsewhere)
+  };
+
+  return (
+    <div
+      className="card"
+      onClick={handleCardClick}
+      style={{ marginTop: "10px", marginBottom: "10px" }}
+    >
+      <div
+        className="card-content"
+        style={{ textAlign: "center", padding: "20px" }}
+      >
+        {/* Machine Image */}
+        <div className="card-image" style={{ marginBottom: "20px" }}>
+          <img
+            src={
+              machine.machineimagefile
+                ? `https://machine-backend.azurewebsites.net/uploads/${machine.machineimagefile}`
+                : "/fallback-image.jpg"
+            }
+            alt={machine.machine_name || "Machine"}
+            onError={(e) => (e.target.src = "/fallback-image.jpg")}
+            style={{ maxWidth: "100%", height: "auto" }}
+          />
+        </div>
+
+        {/* Title */}
+        <h3
+          style={{
+            color: "#2c3e50",
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            marginBottom: "8px",
+          }}
+        >
+          {machine.machine_name || "Unknown Machine"}
+        </h3>
+
+        {/* Machine Info */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            textAlign: "left",
+            maxWidth: "400px",
+            margin: "auto",
+          }}
+        >
+          <p>
+            <strong>Machine Reference:</strong> {machine.machine_ref || "N/A"}
+          </p>
+          <p>
+            <strong>Brand:</strong> {machine.brand || "N/A"}
+          </p>
+          <p>
+            <strong>Model:</strong> {machine.model || "N/A"}
+          </p>
+          <p>
+            <strong>Product Line:</strong> {machine.product_line || "N/A"}
+          </p>
+          <p>
+            <strong>Production Line:</strong> {machine.production_line || "N/A"}
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div
+          style={{
+            marginTop: "15px",
+            display: "flex",
+            justifyContent: "center",
+            gap: "12px",
+          }}
+        >
+          <Button
+            icon={<EditOutlined />}
             onClick={(e) => {
               e.stopPropagation();
-              if (machine.facilities.length > 0) {
-                const facility = machine.facilities.find(facility => facility.machine_id === machine.machine_id);
-                if (facility) {
-                  navigate(`/facilities/${facility.id}`);
-                } else {
-                  alert("No matching facility found for this machine");
-                }
-              } else {
-                alert("No facilities found for this machine");
-              }
+              setUpdateModalVisible(true);
             }}
-            className="details-button"
-            style={{ marginTop: "20px" }}
-          >
-            View Details Facilities
-          </button>
-  
-          {/* Delete Modal */}
-          <Modal
-            title="Confirm Deletion"
-            visible={isDeleteModalVisible}
-            onOk={handleDelete}
-            onCancel={handleDeleteCancel}
-            okText="Yes, Delete"
-            cancelText="Cancel"
-          >
-            <p>Are you sure you want to delete this machine?</p>
-          </Modal>
-  
-          {/* Update Modal */}
-          <Modal
-            title="Update Machine"
-            visible={isUpdateModalVisible}
-            onOk={handleUpdateSubmit}
-            onCancel={handleUpdateCancel}
-            okText="Update"
-            cancelText="Cancel"
-          >
-            <div>
-              <label>Machine Name:</label>
-              <Input
-                name="machine_name"
-                value={updatedMachine.machine_name}
-                onChange={handleInputChange}
-                style={{ marginBottom: "10px" }}
-              />
-              <label>Brand:</label>
-              <Input
-                name="brand"
-                value={updatedMachine.brand}
-                onChange={handleInputChange}
-                style={{ marginBottom: "10px" }}
-              />
-              <label>Model:</label>
-              <Input
-                name="model"
-                value={updatedMachine.model}
-                onChange={handleInputChange}
-                style={{ marginBottom: "10px" }}
-              />
-              <label>Product Line:</label>
-              <Input
-                name="product_line"
-                value={updatedMachine.product_line}
-                onChange={handleInputChange}
-                style={{ marginBottom: "10px" }}
-              />
-              <label>Production Line:</label>
-              <Input
-                name="production_line"
-                value={updatedMachine.production_line}
-                onChange={handleInputChange}
-                style={{ marginBottom: "10px" }}
-              />
-            </div>
-          </Modal>
+          />
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteModalVisible(true);
+            }}
+          />
         </div>
+
+        
+
+        {/* Delete Modal */}
+        <Modal
+          title="Confirm Deletion"
+          open={isDeleteModalVisible}
+          onOk={onDelete}
+          onCancel={handleDeleteCancel}
+          okText="Yes, Delete"
+          cancelText="Cancel"
+        >
+          <p>Are you sure you want to delete this machine?</p>
+        </Modal>
+
+        {/* Update Modal */}
+        <Modal
+          title="Update Machine"
+          open={isUpdateModalVisible}
+          onOk={handleUpdateSubmit}
+          onCancel={handleUpdateCancel}
+          okText="Update"
+          cancelText="Cancel"
+        >
+          <div>
+            <label>Machine Name:</label>
+            <Input
+              name="machine_name"
+              defaultValue={updatedMachine.machine_name}
+              onChange={handleInputChange}
+              style={{ marginBottom: "10px" }}
+            />
+            <label>Brand:</label>
+            <Input
+              name="brand"
+              defaultValue={updatedMachine.brand}
+              onChange={handleInputChange}
+              style={{ marginBottom: "10px" }}
+            />
+            <label>Model:</label>
+            <Input
+              name="model"
+              defaultValue={updatedMachine.model}
+              onChange={handleInputChange}
+              style={{ marginBottom: "10px" }}
+            />
+            <label>Product Line:</label>
+            <Input
+              name="product_line"
+              defaultValue={updatedMachine.product_line}
+              onChange={handleInputChange}
+              style={{ marginBottom: "10px" }}
+            />
+            <label>Production Line:</label>
+            <Input
+              name="production_line"
+              defaultValue={updatedMachine.production_line}
+              onChange={handleInputChange}
+              style={{ marginBottom: "10px" }}
+            />
+          </div>
+        </Modal>
+
+        {/* QR Code Modal */}
+        <Modal
+          title={`QR Code - ${currentQrMachine?.machine_name || "Machine"}`}
+          open={qrModalVisible}
+          onCancel={handleQrModalClose}
+          footer={[
+            <Button key="download" type="primary" onClick={downloadQRCode}>
+              Download QR Code
+            </Button>,
+            <Button key="close" onClick={handleQrModalClose}>
+              Close
+            </Button>,
+          ]}
+          width={400}
+        >
+          {currentQrMachine && (
+            <div style={{ textAlign: "center", padding: "20px" }}>
+              <div
+                style={{
+                  marginBottom: "20px",
+                  padding: "10px",
+                  background: "#f8f9fa",
+                  borderRadius: "8px",
+                }}
+              >
+                <p style={{ margin: 0, fontWeight: "bold" }}>
+                  Machine Reference: {currentQrMachine.machine_ref}
+                </p>
+                <p style={{ margin: 0 }}>{currentQrMachine.machine_name}</p>
+              </div>
+
+              <div
+                style={{
+                  display: "inline-block",
+                  padding: "20px",
+                  background: "white",
+                  borderRadius: "12px",
+                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                <QRCode
+                  id="qrcode-canvas"
+                  value={JSON.stringify({
+                    machine_id: currentQrMachine.machine_id,
+                    machine_ref: currentQrMachine.machine_ref,
+                    machine_name: currentQrMachine.machine_name,
+                    brand: currentQrMachine.brand,
+                    model: currentQrMachine.model,
+                    type: "machine",
+                  })}
+                  size={200}
+                  level="H"
+                  includeMargin
+                />
+              </div>
+
+              <p
+                style={{
+                  marginTop: "15px",
+                  color: "#666",
+                  fontSize: "14px",
+                }}
+              >
+                Scan this QR code to view machine details
+              </p>
+            </div>
+          )}
+        </Modal>
       </div>
-    );
-  };
+    </div>
+  );
+};
   
   const indexOfLastMachine = currentPage * machinesPerPage;
   const indexOfFirstMachine = indexOfLastMachine - machinesPerPage;
@@ -1290,6 +1439,10 @@ await Promise.all(toUpdate.map(async (station) => {
           }}>
             View Details
           </button>
+          
+         
+
+
 
            {/* Machine Details Modal */}
            <Modal
@@ -1539,74 +1692,187 @@ await Promise.all(toUpdate.map(async (station) => {
     
 
       {/* Maintenance History */}
-      <div>
-        <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#1e293b' }}>
-          <HistoryOutlined style={{ marginRight: '8px' }} />
-          Maintenance History
-        </h4>
-        <div style={{ 
-          background: '#f8fafc',
-          borderRadius: '8px',
-          padding: '12px',
-          maxHeight: '200px',
-          overflowY: 'auto'
-        }}>
-          {machine.maintenance_history?.length > 0 ? (
-            machine.maintenance_history.map((item, index) => (
-              <div key={index} style={{ 
-                padding: '12px',
-                marginBottom: '8px',
-                background: 'white',
-                borderRadius: '6px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontWeight: 500 }}>
-                    <CalendarOutlined style={{ marginRight: '6px' }} />
-                    {item.date}
-                  </span>
-                  <span style={{ 
-                    color: item.type === 'Preventive' ? '#059669' : '#d97706',
-                    fontWeight: 500
-                  }}>
-                    {item.type}
-                  </span>
-                </div>
-                <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#475569' }}>
-                  {item.notes}
-                </p>
-                {item.technician && (
-                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
-                    <UserOutlined style={{ marginRight: '6px' }} />
-                    {item.technician}
-                  </p>
-                )}
-              </div>
-            ))
-          ) : (
-            <div style={{ 
-              padding: '16px', 
-              textAlign: 'center', 
-              color: '#64748b',
-              background: 'white',
-              borderRadius: '6px'
-            }}>
-              <FileTextOutlined style={{ fontSize: '20px', marginBottom: '8px' }} />
-              <p style={{ margin: 0 }}>No maintenance records found</p>
-            </div>
-          )}
-        </div>
+  <div style={{ marginTop: '40px' }}>
+  <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#1e293b' }}>
+    <HistoryOutlined style={{ marginRight: '8px' }} />
+    Maintenance History
+  </h4>
+  
+  <div style={{ 
+    background: '#f8fafc',
+    borderRadius: '8px',
+    padding: '12px',
+    maxHeight: '300px',
+    overflowY: 'auto'
+  }}>
+    {loadingHistory ? (
+      <div style={{ textAlign: 'center', padding: '16px' }}>
+        <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
+          <LoadingOutlined />
+        </span>
       </div>
+    ) : modificationHistory.length === 0 ? (
+      <div style={{ 
+        padding: '16px', 
+        textAlign: 'center', 
+        color: '#64748b',
+        background: 'white',
+        borderRadius: '6px'
+      }}>
+        <FileTextOutlined style={{ fontSize: '20px', marginBottom: '8px' }} />
+        <p style={{ margin: 0 }}>No maintenance records found</p>
+      </div>
+    ) : (
+      <div style={{ display: 'grid', gap: '12px' }}>
+        {modificationHistory.map((record, index) => {
+          // Filter out unchanged fields
+          const changedFields = Object.entries(record.changes || {})
+            .filter(([field, values]) => values.old !== values.new);
+            
+          if (changedFields.length === 0) return null;
+            
+          return (
+            <div key={index} style={{ 
+              border: '1px solid rgba(0, 0, 0, 0.08)',
+              borderRadius: '8px',
+              padding: '12px',
+              background: 'white'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '12px',
+                color: '#64748b',
+                marginBottom: '8px'
+              }}>
+                <span>
+                  {formatDate(record.action_date)}
+                </span>
+                <span>Modified by: {record.modified_by}</span>
+              </div>
+              
+              <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
+                {changedFields.map(([field, values]) => {
+                  const formatValue = (value) => {
+                    if (field.endsWith('_date') || field === 'action_date') {
+                      return formatDate(value);
+                    }
+                    return value || 'N/A';
+                  };
+
+                  return (
+                    <div key={field} style={{ 
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                      alignItems: 'baseline'
+                    }}>
+                      <span style={{ 
+                        fontWeight: 500,
+                        textTransform: 'capitalize'
+                      }}>
+                        {field.replace(/_/g, ' ')}:
+                      </span>
+                      {values.old !== null && (
+                        <span style={{ 
+                          color: '#64748b',
+                          textDecoration: 'line-through',
+                          paddingRight: '8px'
+                        }}>
+                          {formatValue(values.old)}
+                        </span>
+                      )}
+                      <span style={{ 
+                        fontWeight: 500,
+                        color: '#1e293b'
+                      }}>
+                        {formatValue(values.new)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </div>
+</div>
       <Button key="exit" onClick={()=>setIsModalVisible(false)} type="primary" style={{display:'flex', justifyContent:'center', alignItems:'center', background: '#dc2626', borderColor: '#dc2626', marginTop: '20px' }}>
   Exit
 </Button>
     </div>
   </div>
-</Modal>
+        </Modal>
 
           
           <div style={{ display: 'flex', gap: '8px' }}>
-            <div    onClick={(e) => {
+           {/* QR Code Button - Maximized Size */}
+  <div style={{
+    width: '40px',
+    height: '40px',
+   
+ 
+  }}>
+    <QrcodeOutlined 
+      style={{ 
+        fontSize: '20px',
+        color: '#242926ff',
+        fontWeight: 'bold'
+      }} 
+      onClick={(e) => {
+        e.stopPropagation();
+        setCurrentQrMachine(machine);
+        setQrModalVisible(true);
+      }}
+    />
+  </div>
+
+  {/* QR Code Modal */}
+  <Modal
+    title={`QR Code - ${currentQrMachine?.machine_name || "Machine"}`}
+    open={qrModalVisible}
+    onCancel={() => setQrModalVisible(false)}
+    footer={[
+      <Button key="close" onClick={() => setQrModalVisible(false)}>
+        Close
+      </Button>,
+    ]}
+    width={400}
+  >
+    {currentQrMachine && (
+      <div style={{ textAlign: "center", padding: "20px" }}>
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "10px",
+            background: "#f8f9fa",
+            borderRadius: "8px",
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: "bold" }}>
+            Machine Reference: {currentQrMachine.machine_ref}
+          </p>
+          <p style={{ margin: 0 }}>{currentQrMachine.machine_name}</p>
+        </div>
+
+        {/* Use your MachineQRCode component here */}
+        <MachineQRCode machineId={currentQrMachine.machine_id} />
+        
+        <p
+          style={{
+            marginTop: "15px",
+            color: "#666",
+            fontSize: "14px",
+          }}
+        >
+          Scan this QR code to view machine details
+        </p>
+      </div>
+    )}
+  </Modal>
+         <div    onClick={(e) => {
             e.stopPropagation(); // prevent modal click conflict
           fetchMachineDetails(machine.machine_id);
           }} style={{
@@ -1625,6 +1891,8 @@ await Promise.all(toUpdate.map(async (station) => {
             }}>
               <EditOutlined style={{ fontSize: '12px', color: '#6366f1' }} />
             </div>
+
+     
     {showSuccessMsg && (
     <div
     style={{
@@ -2142,6 +2410,7 @@ await Promise.all(toUpdate.map(async (station) => {
           </div>
         </div>
       </div>
+      
     ))
   ) : (
     <div style={{
@@ -2276,6 +2545,8 @@ await Promise.all(toUpdate.map(async (station) => {
 </Form>
 
      </Modal>
+
+
 
         {machines.length > machinesPerPage && (
           <div className="pagination">
