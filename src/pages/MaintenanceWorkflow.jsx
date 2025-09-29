@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { io } from 'socket.io-client';
-import socket from './socket'; // adjust path
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import {Tooltip} from '@mui/material';
@@ -17,7 +15,7 @@ const MaintenanceWorkflow = () => {
   const [activeTab, setActiveTab] = useState('tasks');
   const [myTasks, setMyTasks] = useState([]);
   const [inbox, setInbox] = useState([]);
-  const userId = localStorage.getItem('user_id');
+  const userId = parseInt(localStorage.getItem('user_id'), 10);
   const role = localStorage.getItem('role');
   const [notifications, setNotifications] = useState([]);
   const [feedbacks, setFeedbacks] = useState({}); 
@@ -125,19 +123,6 @@ useEffect(() => {
 
  // Run whenever inbox changes
 
-useEffect(() => {
-  socket.emit('join', { role, userId });
-
-  socket.on('notifyExecutor', (data) => {
-    if (data.executorId === userId) {
-      setSnackbar({ open: true, message: `Task ${data.status}: ${data.feedback}`, severity: 'info' });
-    }
-  });
-
-  return () => {
-    socket.off('notifyExecutor');
-  };
-}, [userId, role]);
 
     useEffect(() => {
       axios.get('https://machine-backend.azurewebsites.net/ajouter/users')
@@ -153,28 +138,7 @@ useEffect(() => {
     .catch((error) => console.error('Error fetching machines:', error));
 }, []);
 
-useEffect(() => {
-  socket.on('taskValidated', ({ taskId, status, feedback }) => {
-    console.log('[Socket] Received taskValidated:', { taskId, status, feedback });
 
-    setInbox((prevInbox) =>
-      prevInbox.map(item =>
-        item.maintenance_id === taskId
-          ? { ...item, task_status: status }  // Update status
-          : item
-      )
-    );
-
-    setFeedbacks((prevFeedbacks) => ({
-      ...prevFeedbacks,
-      [taskId]: feedback, // Update feedback
-    }));
-  });
-
-  return () => {
-    socket.off('taskValidated');
-  };
-}, []);
 
 useEffect(() => {
   if (users.length > 0 && machines.length > 0 && rawInbox.length > 0) {
@@ -194,7 +158,7 @@ useEffect(() => {
   }
 }, [rawInbox, users, machines]);
 
-// Update socket listeners in useEffect
+
 useEffect(() => {
   const handleTaskValidation = ({ maintenance_id, status, feedback }) => {
     console.log('[Socket] Received task validation update:', { maintenance_id, status, feedback });
@@ -224,8 +188,7 @@ useEffect(() => {
     });
   };
 
-  socket.on('new-notification', handleTaskValidation);
-  return () => socket.off('new-notification', handleTaskValidation);
+
 }, []);
   // Send task for review - fixed to use task.id
 // Update handleSendReview function
@@ -247,11 +210,7 @@ const handleSendReview = async (taskId) => {
     const inboxRes = await axios.get(`https://machine-backend.azurewebsites.net/api/inbox/executor/${userId}`);
     setRawInbox(inboxRes.data);
 
-    socket.emit('taskSubmitted', {
-      maintenance_id: taskId,
-      executorId: userId,
-      message: `Task ${taskId} submitted for review`,
-    });
+
          // Then mark task as sent for review in local state
      setSentForReviewTasks(prev => new Set(prev).add(taskId));
 
