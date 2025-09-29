@@ -21,7 +21,6 @@ import {
   DialogActions,
   Tooltip
 } from '@mui/material';
-import socket from './socket'; // adjust path
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import { InformationCircleIcon } from '@heroicons/react/24/solid';
@@ -100,19 +99,7 @@ const fetchReviews = async () => {
     fetchReviews();
   }, [managerId]);
 
-  useEffect(() => {
-  socket.emit('join', { role: 'MANAGER', userId: managerId });
 
-  socket.on('notifyManager', (data) => {
-    console.log('[Socket] Received taskSubmitted in Manager:', data);
-    setSnackbar({ open: true, message: data.message, severity: 'info' });
-    fetchReviews(); // Optionally refetch
-  });
-
-  return () => {
-    socket.off('notifyManager');
-  };
-}, [managerId]);
 
 
 useEffect(() => {
@@ -204,12 +191,6 @@ useEffect(() => {
       setAlert({ message: `Maintenance ${response.toLowerCase()} successfully.`, severity: 'success' });
 
  
-      socket.emit('taskValidated', {
-      executorId: selectedReview.assigned_to,
-      taskId: selectedReview.task_id,
-      status: response,
-      feedback,
-      });
     console.log('[Socket] Sent taskValidated:', {
     executorId: selectedReview.assigned_to,
     taskId: selectedReview.task_id,
