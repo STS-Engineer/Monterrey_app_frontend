@@ -1937,7 +1937,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
 `}
 </style>
                     
-         <Modal
+             <Modal
           title="Edit Machine"
           width={1000}
           visible={visible}
@@ -1977,28 +1977,28 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                 </Upload>
               </Form.Item>
 
-              <Form.Item name="machine_ref"  rules={[{ required: true, message: 'Please enter machine_reference!' }]} >
+              <Form.Item name="machine_ref">
              <Input placeholder="Enter machine reference" />
               </Form.Item>
 
 
-              <Form.Item label="Machine Name" name="machine_name"   rules={[{ required: true, message: 'Please enter machine_name!' }]}>
+              <Form.Item label="Machine Name" name="machine_name">
                 <Input  placeholder="Enter machine name" />
               </Form.Item>
 
-              <Form.Item label="Brand" name="brand" rules={[{ required: true, message: 'Please enter brand!' }]}>
+              <Form.Item label="Brand" name="brand" >
                 <Input  placeholder="Enter brand" />
               </Form.Item>
 
-              <Form.Item label="Model" name="model" rules={[{ required: true, message: 'Please enter model!' }]}>
+              <Form.Item label="Model" name="model" >
                 <Input  placeholder="Enter model" />
               </Form.Item>
 
-              <Form.Item label="Product Line" name="product_line" rules={[{ required: true, message: 'Please enter product_line!' }]}>
+              <Form.Item label="Product Line" name="product_line" >
                 <Input  placeholder="Enter product line" />
               </Form.Item>
 
-              <Form.Item label="Production Line" name="production_line" rules={[{ required: true, message: 'Please enter production_line!' }]}>
+              <Form.Item label="Production Line" name="production_line" >
                 <Input  placeholder="Enter production line" />
               </Form.Item>
 
@@ -2023,7 +2023,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
   <Form.Item
   label="Products"
   name="product_id"
-  rules={[{ required: true, message: 'Please select at least one product!' }]}
+
 >
   <Select
     mode="multiple"
@@ -2075,7 +2075,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                       label="Air Pressure"
                       name="air_pressure"
                       rules={[
-                        { required: true, message: 'Please enter air pressure' },
+                      
                         { pattern: /^\d+$/, message: 'Must be a number' },
                       ]}
                     >
@@ -2085,7 +2085,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                     <Form.Item
                       label="Air Pressure Unit"
                       name="air_pressure_unit"
-                      rules={[{ required: true, message: 'Please select a unit' }]}
+             
                     >
                       <Select placeholder="Select unit" allowClear>
                         <Option value="Bar">Bar</Option>
@@ -2103,19 +2103,19 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                                )}
              
 
-              <Form.Item label="Voltage" name="voltage"  rules={[{ required: true, message: 'Please enter voltage!' }, { pattern: /^\d+$/, message: 'Voltage must be a number' }]}>
+              <Form.Item label="Voltage" name="voltage"  rules={[{ pattern: /^\d+$/, message: 'Voltage must be a number' }]}>
                 <Input  placeholder="Enter voltage" />
               </Form.Item>
 
-              <Form.Item label="Phases" name="phases" rules={[{ required: true, message: 'Please enter phases!' }, { pattern: /^\d+$/, message: 'phases must be a number' }]}>
+              <Form.Item label="Phases" name="phases" rules={[{ pattern: /^\d+$/, message: 'phases must be a number' }]}>
                 <Input  placeholder="Enter phases" />
               </Form.Item>
 
-              <Form.Item label="Amperage" name="amperage" rules={[{ required: true, message: 'Please enter amperage!' }, { pattern: /^\d+$/, message: 'amperage must be a number' }]}>
+              <Form.Item label="Amperage" name="amperage" rules={[{ pattern: /^\d+$/, message: 'amperage must be a number' }]}>
                 <Input  placeholder="Enter amperage" />
               </Form.Item>
 
-              <Form.Item label="Frequency" name="frequency" rules={[{ required: true, message: 'Please enter frequency!' }, { pattern: /^\d+$/, message: 'frequency must be a number' }]}>
+              <Form.Item label="Frequency" name="frequency" rules={[{ pattern: /^\d+$/, message: 'frequency must be a number' }]}>
                 <Input  placeholder="Enter frequency" />
               </Form.Item>
 
@@ -2142,7 +2142,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                       label="Water Temperature"
                       name="water_temp"
                       rules={[
-                        { required: true, message: 'Please enter water temperature' },
+                        
                         { pattern: /^\d+$/, message: 'Must be a number' },
                       ]}
                     >
@@ -2152,7 +2152,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                     <Form.Item
                       label="Water Temperature Unit"
                       name="water_temp_unit"
-                      rules={[{ required: true, message: 'Please select a unit' }]}
+                     
                     >
                       <Select placeholder="Select unit" allowClear>
                         <Option value="°C">°C</Option>
@@ -2168,14 +2168,14 @@ const Card = ({ machine, onDelete, onUpdate }) => {
               </>
             )}
               
-              <Form.Item label="Dust Extraction" name="dust_extraction" rules={[{ required: true, message: 'Please enter dust_extraction!' }]}>
+              <Form.Item label="Dust Extraction" name="dust_extraction">
                 <Select  placeholder="Select Yes or No">
                   <Option value="Yes">Yes</Option>
                   <Option value="No">No</Option>
                 </Select>
               </Form.Item>
 
-              <Form.Item label="Fume Extraction" name="fume_extraction" rules={[{ required: true, message: 'Please enter fume_extraction' }]}> 
+              <Form.Item label="Fume Extraction" name="fume_extraction" > 
                 <Select  placeholder="Select Yes or No">
                   <Option value="Yes">Yes</Option>
                   <Option value="No">No</Option>
@@ -2194,7 +2194,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
             name={field}
             valuePropName="fileList"
             getValueFromEvent={(e) => e?.fileList || []}
-            rules={[{ required: true, message: `Please upload ${field.replace(/_/g, ' ')}` }]}
+            
           >
             <Upload
               listType="picture-card"
@@ -2227,7 +2227,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
             name={field}
             valuePropName="fileList"
             getValueFromEvent={e => e?.fileList || []}
-            rules={[{ required: true, message: `Please upload ${field.replace(/_/g, ' ')}` }]}
+       
           >
             <Upload
               listType="picture-card"
@@ -2258,7 +2258,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           <Form.Item
             label={field.replace(/_/g, ' ').toUpperCase()}
             name={field}
-            rules={[{ required: true, message: `Please enter ${field.replace(/_/g, ' ')}` }, { pattern: /^\d+$/, message: ' must be a number' } ]}
+           
           >
             <Input
               placeholder={`Enter ${field.replace(/_/g, ' ')}`}
@@ -2279,7 +2279,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           <Form.Item
   label={field.replace(/_/g, ' ').toUpperCase()}
   name={field}
-  rules={[{ required: true, message: `Please upload ${field.replace(/_/g, ' ')}` }]}
+ 
 >
   <Upload
     listType="picture-card"
@@ -2305,7 +2305,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                 ))}
               </Row>
 
-              <Form.Item label="Production Rate" name="production_rate"  rules={[{ required: true, message: 'Please enter production rate' }, { pattern: /^\d+$/, message: ' must be a number' }]}>
+              <Form.Item label="Production Rate" name="production_rate"  rules={[{ pattern: /^\d+$/, message: ' must be a number' }]}>
                 <Input  placeholder="Enter production rate" />
               </Form.Item>
             </>
@@ -2336,11 +2336,10 @@ const Card = ({ machine, onDelete, onUpdate }) => {
 
 }
     
-
 </div>
-
         </Form>
             </Modal>
+
 
             <div style={{
               width: '24px',
