@@ -752,57 +752,60 @@ await Promise.all(toUpdate.map(async (station) => {
     form.setFieldsValue({ [field]: sanitizedFileList });
   };
   
-  const showModal = async (machine) => {
-    try {
-      const response = await axios.get(
-        `https://machine-backend.azurewebsites.net/ajouter/machineproducts/${machine.machine_id}`
-      );
+const showModal = async (machine) => {
+  try {
+    const response = await axios.get(
+      `https://machine-backend.azurewebsites.net/ajouter/machineproducts/${machine.machine_id}`
+    );
 
-      // Validate and process string IDs
-      const processedProductIds = (Array.isArray(response.data) ? response.data : [])
-        .map(id => {
-          // Ensure we're working with strings
-          const stringId = typeof id === 'string' ? id : String(id);
-          // Clean up string values
-          return stringId.trim().replace(/\s+/g, ' ');
-        })
-        .filter(id => id && id.length > 0 && id !== 'null'); // Filter out 'null' strings
+    // Validate and process string IDs
+    const processedProductIds = (Array.isArray(response.data) ? response.data : [])
+      .map(id => {
+        const stringId = typeof id === 'string' ? id : String(id);
+        return stringId.trim().replace(/\s+/g, ' ');
+      })
+      .filter(id => id && id.length > 0 && id !== 'null');
 
-      console.log('Processed string product IDs:', processedProductIds);
-   // ✅ Fetch maintenance history
+    console.log('Processed string product IDs:', processedProductIds);
+    
+    // ✅ Fetch maintenance history
     const historyRes = await axios.get(
       `https://machine-backend.azurewebsites.net/ajouter/maintenance/${machine.machine_id}/history`
     );
     const maintenanceHistory = historyRes.data || [];
 
     console.log('Maintenance history:', maintenanceHistory);
-      // Set productIds in state
-      setProductIds(processedProductIds);
+    
+    // Set productIds in state
+    setProductIds(processedProductIds);
 
-      const updatedMachine = {
-        ...machine,
-        product_id: processedProductIds,
-      };
+    // ✅ Create complete machine object with ALL data including maintenance history
+    const updatedMachine = {
+      ...machine,
+      product_id: processedProductIds,
+      maintenance_history: maintenanceHistory // Add maintenance history here
+    };
 
-      setSelectedMachine(updatedMachine);
-      setIsModalVisible(true);
-    } catch (error) {
-      console.error('Failed to process string product IDs:', {
-        error: error.response?.data || error.message,
-        machineId: machine?.machine_id,
-        rawData: error.response?.data,
-      });
+    setSelectedMachine(updatedMachine);
+    setIsModalVisible(true);
+  } catch (error) {
+    console.error('Failed to process string product IDs:', {
+      error: error.response?.data || error.message,
+      machineId: machine?.machine_id,
+      rawData: error.response?.data,
+    });
 
-      notification.error({
-        message: 'Product ID Error',
-        description: `Error processing product IDs for machine ${machine.machine_id}: ${
-          error.response?.data?.message || 'Invalid string format in product IDs'
-        }`,
-      });
-    }
-  };
+    notification.error({
+      message: 'Product ID Error',
+      description: `Error processing product IDs for machine ${machine.machine_id}: ${
+        error.response?.data?.message || 'Invalid string format in product IDs'
+      }`,
+    });
+  }
+};
   const handleCancel = () => {
     setIsModalVisible(false);
+    setSelectedMachine(null);
   };
 
   const handleImageError = () => {
@@ -1441,43 +1444,37 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           </button>
           
          
-
-
-
-           {/* Machine Details Modal */}
-           <Modal
-           title={<span style={{ fontSize: '18px', fontWeight: 600 }}>Machine Details</span>}
-           visible={isModalVisible}
-           onCancel={handleCancel}
-           footer={null}
-           width={800}
-           style={{ top: 20 }}
-           bodyStyle={{ padding: '24px' }}
-            >
-       <div style={{ display: 'flex', gap: '24px' }}>
-        
-        {/* Machine Image Section */}
-        <div style={{ flex: 1 }}>
-          
-        <div style={{
-         width: '300px',
+        {/* Machine Details Modal */}
+<Modal
+  title={<span style={{ fontSize: '18px', fontWeight: 600 }}>Machine Details</span>}
+  visible={isModalVisible}
+  onCancel={handleCancel}
+  footer={null}
+  width={800}
+  style={{ top: 20 }}
+  bodyStyle={{ padding: '24px' }}
+>
+  <div style={{ display: 'flex', gap: '24px' }}>
+    
+    {/* Machine Image Section */}
+    <div style={{ flex: 1 }}>
+      <div style={{
+        width: '300px',
         height: '200px',
         borderRadius: '8px',
         overflow: 'hidden',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-       }}>
+      }}>
+        {selectedMachine?.machineimagefile ? (
+          <img src={`https://machine-backend.azurewebsites.net/uploads/${selectedMachine.machineimagefile}`} alt="Machine" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginBottom: '10px' }} onError={handleImageError} />
+        ) : imageError ? (
+          <p style={{ color: 'red', marginTop: '10px' }}>Image not available</p>
+        ) : (
+          <p style={{ color: 'gray', marginTop: '10px' }}>No image provided</p>
+        )} 
+      </div>
 
-        
-      {machine.machineimagefile ? (
-                  <img src={`https://machine-backend.azurewebsites.net/uploads/${machine.machineimagefile}`} alt="Machine" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', display: 'block', marginBottom: '10px' }} onError={handleImageError} />
-                ) : imageError ? (
-                  <p style={{ color: 'red', marginTop: '10px' }}>Image not available</p>
-                ) : (
-                  <p style={{ color: 'gray', marginTop: '10px' }}>No image provided</p>
-                )} 
-            </div>
-
-            <div style={{ marginTop: '40px' }}>
+      <div style={{ marginTop: '40px' }}>
         <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#1e293b' }}>
           <SettingOutlined style={{ marginRight: '8px' }} />
           Specifications
@@ -1490,96 +1487,90 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           background: '#f8fafc',
           borderRadius: '8px'
         }}>
-       
-          <DetailItem label="Production rate" value={machine.production_rate || 'N/A'} />
-         
+          <DetailItem label="Production rate" value={selectedMachine?.production_rate || 'N/A'} />
         </div>
       </div>
 
-  {/* Text Fields */}
-  <div style={{
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '12px',
-    marginTop: '20px',
-    padding: '20px 40px',
-    background: '#f1f5f9',
-    borderRadius: '8px'
-  }}>
-    {textFields.map(({ label, key }) => (
-      <DetailItem key={key} label={label} value={machine[key] || 'N/A'} />
-    ))}
-  </div>
+      {/* Text Fields */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '12px',
+        marginTop: '20px',
+        padding: '20px 40px',
+        background: '#f1f5f9',
+        borderRadius: '8px'
+      }}>
+        {textFields.map(({ label, key }) => (
+          <DetailItem key={key} label={label} value={selectedMachine?.[key] || 'N/A'} />
+        ))}
+      </div>
 
       <div style={{ marginTop: '40px' }}>
-  <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#1e293b' }}>
-    <SettingOutlined style={{ marginRight: '8px' }} />
-    Documents & Manuals
-  </h4>
+        <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#1e293b' }}>
+          <SettingOutlined style={{ marginRight: '8px' }} />
+          Documents & Manuals
+        </h4>
 
-  {/* File Links */}
-  <div style={{
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '12px',
-    padding: '40px',
-    background: '#f8fafc',
-    borderRadius: '8px'
-  }}>
-    {fileLinks.map(({ label, key }) => {
-      const fileName = machine[key];
-      const fileUrl = fileName ? `${BASE_FILE_URL}${encodeURIComponent(fileName)}` : null;
-      return (
-        <div key={key}>
-          {fileUrl ? (
-            <a
-              href={fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}
-            >
-              {label}
-            </a>
-          ) : (
-            <span style={{ color: '#94a3b8' }}>{label}: N/A</span>
-          )}
+        {/* File Links */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '12px',
+          padding: '40px',
+          background: '#f8fafc',
+          borderRadius: '8px'
+        }}>
+          {fileLinks.map(({ label, key }) => {
+            const fileName = selectedMachine?.[key];
+            const fileUrl = fileName ? `${BASE_FILE_URL}${encodeURIComponent(fileName)}` : null;
+            return (
+              <div key={key}>
+                {fileUrl ? (
+                  <a
+                    href={fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}
+                  >
+                    {label}
+                  </a>
+                ) : (
+                  <span style={{ color: '#94a3b8' }}>{label}: N/A</span>
+                )}
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
-  </div>
-
-
-</div>
-
-
-
       </div>
-
+    </div>
 
     {/* Machine Details Section */}
     <div style={{ flex: 2 }}>
       {/* Header with Name and Status */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#1e293b' }}>
-          {machine.machine_name}
+          {selectedMachine?.machine_name}
         </h3>
         <span style={{
-          background: machine.status === 'Active' ? '#e6f7ee' : '#fee2e2',
-          color: machine.status === 'Active' ? '#059669' : '#dc2626',
+          background: selectedMachine?.status === 'Active' ? '#e6f7ee' : '#fee2e2',
+          color: selectedMachine?.status === 'Active' ? '#059669' : '#dc2626',
           padding: '6px 12px',
           borderRadius: '20px',
           fontSize: '12px',
           fontWeight: 500
         }}>
-          {machine.status}
+          {selectedMachine?.status}
         </span>
       </div>
+      
       <div>
-     <h4 style={{ marginTop: '12px', fontSize: '16px', color: '#1e293b' }}>
+        <h4 style={{ marginTop: '12px', fontSize: '16px', color: '#1e293b' }}>
           <SettingOutlined style={{ marginRight: '8px' }} />
-         Machine Identification
+          Machine Identification
         </h4>
       </div>
+      
       {/* Machine Specifications */}
       <div style={{ 
         display: 'grid', 
@@ -1590,23 +1581,21 @@ const Card = ({ machine, onDelete, onUpdate }) => {
         background: '#f8fafc',
         borderRadius: '8px'
       }}>
-        
-        <DetailItem label="Machine reference" value={machine.machine_ref} icon={<EnvironmentOutlined />} />
-        <DetailItem label="Machine name" value={machine.machine_name || 'N/A'} icon={<ShopOutlined />} />
-        <DetailItem label="Brand" value={machine.brand || 'N/A'} icon={<AppstoreOutlined />} />
-        <DetailItem label="Model" value={machine.model || 'N/A'} icon={<BarcodeOutlined />} />
-        <DetailItem label="Product Line" value={`${machine.product_line}`} icon={<DashboardOutlined />} />
-        <DetailItem label="Production Line" value={machine.production_line || 'N/A'} icon={<ToolOutlined />} />
-     
+        <DetailItem label="Machine reference" value={selectedMachine?.machine_ref} icon={<EnvironmentOutlined />} />
+        <DetailItem label="Machine name" value={selectedMachine?.machine_name || 'N/A'} icon={<ShopOutlined />} />
+        <DetailItem label="Brand" value={selectedMachine?.brand || 'N/A'} icon={<AppstoreOutlined />} />
+        <DetailItem label="Model" value={selectedMachine?.model || 'N/A'} icon={<BarcodeOutlined />} />
+        <DetailItem label="Product Line" value={`${selectedMachine?.product_line}`} icon={<DashboardOutlined />} />
+        <DetailItem label="Production Line" value={selectedMachine?.production_line || 'N/A'} icon={<ToolOutlined />} />
       </div>
 
       <div>
-     <h4 style={{ marginTop: '12px', fontSize: '16px', color: '#1e293b' }}>
+        <h4 style={{ marginTop: '12px', fontSize: '16px', color: '#1e293b' }}>
           <SettingOutlined style={{ marginRight: '8px' }} />
-       Linked Products
+          Linked Products
         </h4>
       </div>
-      {/* Machine Specifications */}
+      
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(2, 1fr)',
@@ -1616,16 +1605,14 @@ const Card = ({ machine, onDelete, onUpdate }) => {
         background: '#f8fafc',
         borderRadius: '8px'
       }}>
-        
         <p>{productIds.length > 0 ? productIds.join(', ') : 'No products available'}</p>
-     
       </div>
 
       {/* Technical Specifications Section */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#1e293b' }}>
           <SettingOutlined style={{ marginRight: '8px' }} />
-         Facilities Requirements
+          Facilities Requirements
         </h4>
         <div style={{ 
           display: 'grid',
@@ -1635,177 +1622,141 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           background: '#f8fafc',
           borderRadius: '8px'
         }}>
-          <DetailItem label="Air needed"value={machine.air_needed === true
-      ? 'Yes'
-      : machine.air_needed === false
-      ? 'No'
-      : 'N/A'
-  }
-/>
+          <DetailItem label="Air needed" value={selectedMachine?.air_needed === true ? 'Yes' : selectedMachine?.air_needed === false ? 'No' : 'N/A'} />
          
-          {machine.air_needed === true && (
-              <>
-          <DetailItem label="Air pressure unit" value={machine.air_pressure_unit || 'N/A'} />
-          <DetailItem label="Air pressure" value={machine.air_pressure || 'N/A'} />
-          </>
-        )}
-          <DetailItem label="Voltage" value={machine.voltage || 'N/A'} />
-          <DetailItem label="Phases" value={machine.phases || 'N/A'} />
-          <DetailItem label="Amperage" value={machine.amperage || 'N/A'} />
-          <DetailItem label="Frequency" value={machine.frequency || 'N/A'} />
+          {selectedMachine?.air_needed === true && (
+            <>
+              <DetailItem label="Air pressure unit" value={selectedMachine?.air_pressure_unit || 'N/A'} />
+              <DetailItem label="Air pressure" value={selectedMachine?.air_pressure || 'N/A'} />
+            </>
+          )}
+          <DetailItem label="Voltage" value={selectedMachine?.voltage || 'N/A'} />
+          <DetailItem label="Phases" value={selectedMachine?.phases || 'N/A'} />
+          <DetailItem label="Amperage" value={selectedMachine?.amperage || 'N/A'} />
+          <DetailItem label="Frequency" value={selectedMachine?.frequency || 'N/A'} />
        
-          <DetailItem label="Water cooling"value={machine.water_cooling === true
-      ? 'Yes'
-      : machine.water_cooling === false
-      ? 'No'
-      : 'N/A'
-  }
-/>
-{machine.water_cooling === true && (
-  <>
-    <DetailItem label="Water temp" value={machine.water_temp || 'N/A'} />
-    <DetailItem label="Water_temp_unit" value={machine.water_temp_unit || 'N/A'} />
-  </>
-)}
-          <DetailItem label="Dust extraction"value={machine.dust_extraction === true
-      ? 'Yes'
-      : machine.dust_extraction === false
-      ? 'No'
-      : 'N/A'
-  }
-/>
-<DetailItem
-  label="Fume extraction"
-  value={
-    machine.fume_extraction === true
-      ? 'Yes'
-      : machine.fume_extraction === false
-      ? 'No'
-      : 'N/A'
-  }
-/>
+          <DetailItem label="Water cooling" value={selectedMachine?.water_cooling === true ? 'Yes' : selectedMachine?.water_cooling === false ? 'No' : 'N/A'} />
+          
+          {selectedMachine?.water_cooling === true && (
+            <>
+              <DetailItem label="Water temp" value={selectedMachine?.water_temp || 'N/A'} />
+              <DetailItem label="Water_temp_unit" value={selectedMachine?.water_temp_unit || 'N/A'} />
+            </>
+          )}
+          <DetailItem label="Dust extraction" value={selectedMachine?.dust_extraction === true ? 'Yes' : selectedMachine?.dust_extraction === false ? 'No' : 'N/A'} />
+          <DetailItem label="Fume extraction" value={selectedMachine?.fume_extraction === true ? 'Yes' : selectedMachine?.fume_extraction === false ? 'No' : 'N/A'} />
         </div>
       </div>
 
-
-    
-    
-
       {/* Maintenance History */}
-  <div style={{ marginTop: '40px' }}>
-  <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#1e293b' }}>
-    <HistoryOutlined style={{ marginRight: '8px' }} />
-    Maintenance History
-  </h4>
-  
-  <div style={{ 
-    background: '#f8fafc',
-    borderRadius: '8px',
-    padding: '12px',
-    maxHeight: '300px',
-    overflowY: 'auto'
-  }}>
-    {loadingHistory ? (
-      <div style={{ textAlign: 'center', padding: '16px' }}>
-        <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
-          <LoadingOutlined />
-        </span>
-      </div>
-    ) : modificationHistory.length === 0 ? (
-      <div style={{ 
-        padding: '16px', 
-        textAlign: 'center', 
-        color: '#64748b',
-        background: 'white',
-        borderRadius: '6px'
-      }}>
-        <FileTextOutlined style={{ fontSize: '20px', marginBottom: '8px' }} />
-        <p style={{ margin: 0 }}>No maintenance records found</p>
-      </div>
-    ) : (
-      <div style={{ display: 'grid', gap: '12px' }}>
-        {modificationHistory.map((record, index) => {
-          // Filter out unchanged fields
-          const changedFields = Object.entries(record.changes || {})
-            .filter(([field, values]) => values.old !== values.new);
-            
-          if (changedFields.length === 0) return null;
-            
-          return (
-            <div key={index} style={{ 
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              borderRadius: '8px',
-              padding: '12px',
-              background: 'white'
+      <div style={{ marginTop: '40px' }}>
+        <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#1e293b' }}>
+          <HistoryOutlined style={{ marginRight: '8px' }} />
+          Maintenance History
+        </h4>
+        
+        <div style={{ 
+          background: '#f8fafc',
+          borderRadius: '8px',
+          padding: '12px',
+          maxHeight: '300px',
+          overflowY: 'auto'
+        }}>
+          {selectedMachine?.maintenance_history?.length === 0 ? (
+            <div style={{ 
+              padding: '16px', 
+              textAlign: 'center', 
+              color: '#64748b',
+              background: 'white',
+              borderRadius: '6px'
             }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '12px',
-                color: '#64748b',
-                marginBottom: '8px'
-              }}>
-                <span>
-                  {formatDate(record.action_date)}
-                </span>
-                <span>Modified by: {record.modified_by}</span>
-              </div>
-              
-              <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
-                {changedFields.map(([field, values]) => {
-                  const formatValue = (value) => {
-                    if (field.endsWith('_date') || field === 'action_date') {
-                      return formatDate(value);
-                    }
-                    return value || 'N/A';
-                  };
-
-                  return (
-                    <div key={field} style={{ 
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                      alignItems: 'baseline'
-                    }}>
-                      <span style={{ 
-                        fontWeight: 500,
-                        textTransform: 'capitalize'
-                      }}>
-                        {field.replace(/_/g, ' ')}:
-                      </span>
-                      {values.old !== null && (
-                        <span style={{ 
-                          color: '#64748b',
-                          textDecoration: 'line-through',
-                          paddingRight: '8px'
-                        }}>
-                          {formatValue(values.old)}
-                        </span>
-                      )}
-                      <span style={{ 
-                        fontWeight: 500,
-                        color: '#1e293b'
-                      }}>
-                        {formatValue(values.new)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <FileTextOutlined style={{ fontSize: '20px', marginBottom: '8px' }} />
+              <p style={{ margin: 0 }}>No maintenance records found</p>
             </div>
-          );
-        })}
+          ) : (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {selectedMachine?.maintenance_history?.map((record, index) => {
+                // Filter out unchanged fields
+                const changedFields = Object.entries(record.changes || {})
+                  .filter(([field, values]) => values.old !== values.new);
+                  
+                if (changedFields.length === 0) return null;
+                  
+                return (
+                  <div key={index} style={{ 
+                    border: '1px solid rgba(0, 0, 0, 0.08)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    background: 'white'
+                  }}>
+                    <div style={{ 
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '12px',
+                      color: '#64748b',
+                      marginBottom: '8px'
+                    }}>
+                      <span>
+                        {formatDate(record.action_date)}
+                      </span>
+                      <span>Modified by: {record.modified_by}</span>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
+                      {changedFields.map(([field, values]) => {
+                        const formatValue = (value) => {
+                          if (field.endsWith('_date') || field === 'action_date') {
+                            return formatDate(value);
+                          }
+                          return value || 'N/A';
+                        };
+
+                        return (
+                          <div key={field} style={{ 
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                            alignItems: 'baseline'
+                          }}>
+                            <span style={{ 
+                              fontWeight: 500,
+                              textTransform: 'capitalize'
+                            }}>
+                              {field.replace(/_/g, ' ')}:
+                            </span>
+                            {values.old !== null && (
+                              <span style={{ 
+                                color: '#64748b',
+                                textDecoration: 'line-through',
+                                paddingRight: '8px'
+                              }}>
+                                {formatValue(values.old)}
+                              </span>
+                            )}
+                            <span style={{ 
+                              fontWeight: 500,
+                              color: '#1e293b'
+                            }}>
+                              {formatValue(values.new)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    )}
-  </div>
-</div>
+      
       <Button key="exit" onClick={()=>setIsModalVisible(false)} type="primary" style={{display:'flex', justifyContent:'center', alignItems:'center', background: '#dc2626', borderColor: '#dc2626', marginTop: '20px' }}>
-  Exit
-</Button>
+        Exit
+      </Button>
     </div>
   </div>
-        </Modal>
-
+</Modal>
           
           <div style={{ display: 'flex', gap: '8px' }}>
            {/* QR Code Button - Maximized Size */}
