@@ -200,10 +200,9 @@ useEffect(() => {
 
       setSelectedReview(null);
       setFeedback('');
-
-      // Refresh the list
-      const updated = reviews.filter((r) => r.demand_id !== selectedReview.demand_id);
-      setReviews(updated);
+     // REFETCH ALL REVIEWS AFTER RESPONDING
+       await fetchReviews();
+ 
     } catch (err) {
       console.error(`Failed to ${response} maintenance:`, err);
       setAlert({ message: `Failed to ${response.toLowerCase()} maintenance.`, severity: 'error' });
