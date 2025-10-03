@@ -69,6 +69,7 @@ const AddMachineForm = () => {
     cpk_data: [],  
     validation_document: [],
     parameter_studies: [],      // Added for file uploads
+    operation_instruction: []
   });
   
   const [stations, setStations]= useState([]);
@@ -260,7 +261,7 @@ const AddMachineForm = () => {
     const fileFields = [
       'machineimagefile', 'files_3d', 'files_2d', 'spare_parts_list',
       'electrical_diagram', 'plc_program', 'hmi_program', 'cpk_data',
-      'validation_document', 'parameter_studies', 'other_programs', 'machine_manual'
+      'validation_document', 'parameter_studies', 'other_programs', 'machine_manual', 'operation_instruction'
     ];
   
     fileFields.forEach(field => {
@@ -434,6 +435,12 @@ message.warning("No products selected.");
       if (values.parameter_studies && values.parameter_studies.length > 0) {
         values.parameter_studies.forEach(file => {
           formData.append('parameter_studies', file.originFileObj);
+        });
+      }
+      
+      if (values.operation_instruction && values.operation_instruction.length > 0) {
+        values.operation_instruction.forEach(file => {
+          formData.append('operation_instruction', file.originFileObj);
         });
       }
   
@@ -1219,6 +1226,21 @@ message.warning("No products selected.");
   </Col>
 
 
+    <Col span={12} style={{ paddingRight: 20 }}>
+    <Form.Item
+      label="Operational Instruction"
+      name="operation_instruction"
+      valuePropName="fileList"
+      getValueFromEvent={(e) => e?.fileList || []}
+    >
+      <Upload listType="picture-card" beforeUpload={() => false} maxCount={1}>
+        <div>
+          <PlusOutlined />
+          <div style={{ marginTop: 8 }}>Operational Instruction</div>
+        </div>
+      </Upload>
+    </Form.Item>
+  </Col>
 
 
            
