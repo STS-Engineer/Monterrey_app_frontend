@@ -161,20 +161,6 @@ const handleSubmit = async (e) => {
             </select>
           </div>
 
-          {/* Creator */}
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">
-              Creator
-            </label>
-            <input
-              type="text"
-              name="creator"
-              value={formData.creator}
-              readOnly
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
-            />
-          </div>
-
           {/* Submit Button */}
           <button
             type="submit"
