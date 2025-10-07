@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const FailuresList = () => {
   const [failures, setFailures] = useState([]);
@@ -12,7 +14,7 @@ const FailuresList = () => {
   });
 
   const [searchMachine, setSearchMachine] = useState("");
-  const [searchDate, setSearchDate] = useState("");
+  const [searchDate, setSearchDate] = useState(null);
 
 
   // Fetch failures
@@ -71,13 +73,14 @@ const FailuresList = () => {
       console.error("Error updating failure:", err);
     }
   };
-
+  
   // Filtered failures based on search
   const filteredFailures = failures.filter((f) => {
     const matchesMachine = f.machine_name.toLowerCase().includes(searchMachine.toLowerCase());
-    const matchesDate = searchDate ? f.failure_date.startsWith(searchDate) : true;
+    const matchesDate = searchDate ? new Date(f.failure_date).toDateString() === searchDate.toDateString() : true;
     return matchesMachine && matchesDate;
   });
+
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -91,11 +94,12 @@ const FailuresList = () => {
           onChange={(e) => setSearchMachine(e.target.value)}
           className="border px-3 py-2 rounded w-1/2"
         />
-        <input
-          type="date"
-          value={searchDate}
-          onChange={(e) => setSearchDate(e.target.value)}
+        <DatePicker
+          selected={searchDate}
+          onChange={(date) => setSearchDate(date)}
           className="border px-3 py-2 rounded w-1/2"
+          placeholderText="Search by date"
+          dateFormat="yyyy-MM-dd"
         />
       </div>
       <table className="w-full border border-gray-300 bg-white rounded-lg shadow-md">
