@@ -11,6 +11,10 @@ const FailuresList = () => {
     resolved_date: "",
   });
 
+  const [searchMachine, setSearchMachine] = useState("");
+  const [searchDate, setSearchDate] = useState("");
+
+
   // Fetch failures
   const fetchFailures = async () => {
     try {
@@ -68,9 +72,32 @@ const FailuresList = () => {
     }
   };
 
+  // Filtered failures based on search
+  const filteredFailures = failures.filter((f) => {
+    const matchesMachine = f.machine_name.toLowerCase().includes(searchMachine.toLowerCase());
+    const matchesDate = searchDate ? f.failure_date.startsWith(searchDate) : true;
+    return matchesMachine && matchesDate;
+  });
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Failures List</h1>
+     {/* Search Bar */}
+      <div className="flex gap-4 mb-4">
+        <input
+          type="text"
+          placeholder="Search by machine name"
+          value={searchMachine}
+          onChange={(e) => setSearchMachine(e.target.value)}
+          className="border px-3 py-2 rounded w-1/2"
+        />
+        <input
+          type="date"
+          value={searchDate}
+          onChange={(e) => setSearchDate(e.target.value)}
+          className="border px-3 py-2 rounded w-1/2"
+        />
+      </div>
       <table className="w-full border border-gray-300 bg-white rounded-lg shadow-md">
         <thead className="bg-gray-100">
           <tr>
@@ -83,7 +110,7 @@ const FailuresList = () => {
           </tr>
         </thead>
         <tbody>
-          {failures.map((f) => (
+          {filteredFailures.map((f) => (
             <tr key={f.id} className="text-center">
               <td className="p-2 border">{f.machine_name}</td>
               <td className="p-2 border">{f.failure_desc}</td>
