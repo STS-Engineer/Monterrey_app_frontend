@@ -910,7 +910,7 @@ useEffect(() => {
                             </div>
                             
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Interval</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Repeat every</label>
                               <input
                                 type="number"
                                 min="1"
