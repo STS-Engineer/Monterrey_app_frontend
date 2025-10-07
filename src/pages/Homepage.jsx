@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo  } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {Layout,  Modal, Steps, Form, Input, Upload, Button, Select, Switch, Row, Col, message, notification  } from "antd";
-import { EditOutlined, DeleteOutlined, FileTextOutlined, SettingOutlined, HistoryOutlined, IdcardOutlined, EnvironmentOutlined, ShopOutlined, AppstoreOutlined, CalendarOutlined, ToolOutlined, DashboardOutlined, BarcodeOutlined, UserOutlined, PlusOutlined, EyeOutlined, QrcodeOutlined  } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, FileTextOutlined, SettingOutlined, HistoryOutlined, IdcardOutlined, EnvironmentOutlined, ShopOutlined, AppstoreOutlined, CalendarOutlined, ToolOutlined, DashboardOutlined, BarcodeOutlined, UserOutlined, PlusOutlined, EyeOutlined, QrcodeOutlined, PrinterOutlined  } from '@ant-design/icons';
 import { 
   SearchOutlined
 } from '@ant-design/icons';
@@ -574,10 +574,168 @@ await Promise.all(toUpdate.map(async (station) => {
       message.error(error.message || 'Update failed');
     }
   };
+
+
+  const handlePrintQRCode = () => {
+  console.log('🖨️ Print QR Code button clicked');
   
+  if (!currentQrMachine) {
+    message.error('No machine selected');
+    return;
+  }
+
+  // Create the data for the QR code
+  const qrData = JSON.stringify({
+    machine_id: currentQrMachine.machine_id,
+    machine_ref: currentQrMachine.machine_ref,
+    machine_name: currentQrMachine.machine_name,
+    brand: currentQrMachine.brand,
+    model: currentQrMachine.model,
+    type: "machine"
+  });
+
+  // Use a QR code generator API instead of loading external library
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
+
+  const printWindow = window.open('', '_blank', 'width=600,height=700');
   
+  if (!printWindow) {
+    message.error('Popup blocked! Please allow popups for this site and try again.');
+    return;
+  }
+
+  const printContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>QR Code - ${currentQrMachine.machine_name}</title>
+      <style>
+        body {
+          margin: 0;
+          padding: 40px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: calc(100vh - 80px);
+          background: white;
+          font-family: Arial, sans-serif;
+        }
+        .print-container {
+          text-align: center;
+          max-width: 400px;
+        }
+        .machine-info {
+          background: #f8f9fa;
+          padding: 20px;
+          border-radius: 10px;
+          margin-bottom: 30px;
+          border: 1px solid #e9ecef;
+        }
+        .machine-info h2 {
+          margin: 0 0 10px 0;
+          color: #333;
+        }
+        .machine-info p {
+          margin: 5px 0;
+          color: #666;
+        }
+        .qr-image {
+          width: 300px;
+          height: 300px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 10px;
+          background: white;
+        }
+        .instructions {
+          margin-top: 20px;
+          color: #666;
+          font-style: italic;
+        }
+        .no-print {
+          margin-top: 30px;
+        }
+        button {
+          padding: 10px 20px;
+          margin: 5px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+        }
+        .print-btn {
+          background: #1890ff;
+          color: white;
+        }
+        .print-btn:hover {
+          background: #40a9ff;
+        }
+        .close-btn {
+          background: #6c757d;
+          color: white;
+        }
+        .close-btn:hover {
+          background: #5a6268;
+        }
+        @media print {
+          body { 
+            margin: 0 !important;
+            padding: 20px !important;
+          }
+          .no-print { 
+            display: none !important; 
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="print-container">
+        <div class="machine-info">
+          <h2>${currentQrMachine.machine_name}</h2>
+          <p><strong>Reference:</strong> ${currentQrMachine.machine_ref}</p>
+          <p><strong>Brand:</strong> ${currentQrMachine.brand || 'N/A'}</p>
+          <p><strong>Model:</strong> ${currentQrMachine.model || 'N/A'}</p>
+        </div>
+        
+        <div class="qr-code-container">
+          <img src="${qrCodeUrl}" alt="QR Code for ${currentQrMachine.machine_name}" class="qr-image" 
+               onerror="this.src='https://via.placeholder.com/300x300/ffffff/000000?text=QR+Error'" />
+        </div>
+        
+        <p class="instructions">Scan QR code to view machine details</p>
+        
+        <div class="no-print">
+          <button class="print-btn" onclick="window.print()">Print QR Code</button>
+          <button class="close-btn" onclick="window.close()">Close Window</button>
+        </div>
+      </div>
+
+      <script>
+        // Auto-print after image loads
+        const qrImage = document.querySelector('.qr-image');
+        qrImage.onload = function() {
+          console.log('QR image loaded successfully');
+          setTimeout(() => {
+            window.print();
+          }, 1000);
+        };
+        
+        qrImage.onerror = function() {
+          console.error('Failed to load QR image');
+          alert('Failed to generate QR code. Please check your internet connection and try again.');
+        };
+      </script>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.write(printContent);
+  printWindow.document.close();
   
-  
+  console.log('Print window opened with QR code URL:', qrCodeUrl);
+};
   
   const fetchStationsByMachineId = async (machineId) => {
     try {
@@ -1781,48 +1939,60 @@ const Card = ({ machine, onDelete, onUpdate }) => {
   </div>
 
   {/* QR Code Modal */}
-  <Modal
-    title={`QR Code - ${currentQrMachine?.machine_name || "Machine"}`}
-    open={qrModalVisible}
-    onCancel={() => setQrModalVisible(false)}
-    footer={[
-      <Button key="close" onClick={() => setQrModalVisible(false)}>
-        Close
-      </Button>,
-    ]}
-    width={400}
-  >
-    {currentQrMachine && (
-      <div style={{ textAlign: "center", padding: "20px" }}>
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "10px",
-            background: "#f8f9fa",
-            borderRadius: "8px",
-          }}
-        >
-          <p style={{ margin: 0, fontWeight: "bold" }}>
-            Machine Reference: {currentQrMachine.machine_ref}
-          </p>
-          <p style={{ margin: 0 }}>{currentQrMachine.machine_name}</p>
-        </div>
-
-        {/* Use your MachineQRCode component here */}
-        <MachineQRCode machineId={currentQrMachine.machine_id} />
-        
-        <p
-          style={{
-            marginTop: "15px",
-            color: "#666",
-            fontSize: "14px",
-          }}
-        >
-          Scan this QR code to view machine details
+   <Modal
+  title={`QR Code - ${currentQrMachine?.machine_name || "Machine"}`}
+  open={qrModalVisible}
+  onCancel={() => setQrModalVisible(false)}
+  footer={[
+    <Button key="print" onClick={handlePrintQRCode} icon={<PrinterOutlined />}>
+      Print QR Code
+    </Button>,
+    <Button key="download" type="primary" onClick={downloadQRCode}>
+      Download QR Code
+    </Button>,
+    <Button key="close" onClick={() => setQrModalVisible(false)}>
+      Close
+    </Button>,
+  ]}
+  width={450}
+>
+  {currentQrMachine && (
+    <div style={{ textAlign: "center", padding: "20px" }}>
+      <div
+        style={{
+          marginBottom: "20px",
+          padding: "15px",
+          background: "#f8f9fa",
+          borderRadius: "8px",
+          border: "1px solid #e8e8e8",
+        }}
+      >
+        <p style={{ margin: 0, fontWeight: "bold", fontSize: "16px" }}>
+          {currentQrMachine.machine_name}
+        </p>
+        <p style={{ margin: "5px 0 0 0", color: "#666" }}>
+          Reference: {currentQrMachine.machine_ref}
         </p>
       </div>
-    )}
-  </Modal>
+
+      {/* Your MachineQRCode component - make sure it has an id for download */}
+      <div id="qrcode-canvas">
+        <MachineQRCode machineId={currentQrMachine.machine_id} />
+      </div>
+      
+      <p
+        style={{
+          marginTop: "20px",
+          color: "#666",
+          fontSize: "14px",
+          fontStyle: "italic",
+        }}
+      >
+        Scan to view machine details
+      </p>
+    </div>
+  )}
+</Modal>
          <div    onClick={(e) => {
             e.stopPropagation(); // prevent modal click conflict
           fetchMachineDetails(machine.machine_id);
