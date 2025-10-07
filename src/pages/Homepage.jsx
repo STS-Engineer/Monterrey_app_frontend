@@ -575,6 +575,26 @@ await Promise.all(toUpdate.map(async (station) => {
     }
   };
 
+const downloadQRCode = () => {
+  if (!currentQrMachine) return;
+
+  // Get the QR code canvas from your MachineQRCode component
+  const canvas = document.querySelector("#qrcode-canvas canvas");
+  
+  if (canvas) {
+    const pngUrl = canvas.toDataURL("image/png");
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngUrl;
+    downloadLink.download = `machine-${currentQrMachine.machine_ref}-qrcode.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  } else {
+    // Fallback if canvas not found
+    message.error('QR code not ready for download');
+  }
+};
+
 
   const handlePrintQRCode = () => {
   console.log('🖨️ Print QR Code button clicked');
