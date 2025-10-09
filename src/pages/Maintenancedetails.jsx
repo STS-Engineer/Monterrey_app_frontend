@@ -902,7 +902,7 @@ useEffect(() => {
                                 className="w-full rounded-md border border-gray-300 p-2"
                               >
                                 <option value="">No Recurrence</option>
-                                <option value="daily">Daily</option>
+                                <option value="daily">Days</option>
                                 <option value="weekly">Weekly</option>
                                 <option value="monthly">Monthly</option>
                                 <option value="yearly">Yearly</option>
