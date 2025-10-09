@@ -97,7 +97,7 @@ const handleSubmit = async (e) => {
           {/* Failure Description */}
           <div>
             <label className="block text-gray-700 font-medium mb-2">
-              Failure Description
+              Root cause
             </label>
             <textarea
               name="failure_desc"
