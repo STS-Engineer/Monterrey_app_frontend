@@ -86,7 +86,7 @@ const navItems: NavItem[] = [
       { name: "View Maintenance Task", path: "/maintenanceviewer", roles: ["VIEWER"] },
       { name: "View Maintenance Task", path: "/maintenancedetails", roles: ["ADMIN", "MANAGER", "EXECUTOR"] },
       { name: "My Tasks & Responses", path: "/executorrequest", roles: ["EXECUTOR", "MANAGER","ADMIN"] },
-      { name: "Pending Validations", path: "/manager/reviews", roles: ["MANAGER", "EXECUTOR", "ADMIN"] },
+      { name: "Pending Validations", path: "/manager/reviews", roles: ["MANAGER", "ADMIN"] },
     ],
   },
   
