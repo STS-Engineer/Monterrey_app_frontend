@@ -10,18 +10,20 @@ const FailuresList = () => {
     solution: "",
     failure_date: "",
     status: "Pending",
-    resolved_date: "",
   });
 
+  // New state for search
   const [searchMachine, setSearchMachine] = useState("");
-  const [searchDate, setSearchDate] = useState(null);
-
+  const [searchMachineRef, setSearchMachineRef] = useState("");
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
 
   // Fetch failures
   const fetchFailures = async () => {
     try {
       const res = await fetch("https://machine-backend.azurewebsites.net/ajouter/failures");
       const data = await res.json();
+      // console.log("failure data", data);
       setFailures(data);
     } catch (err) {
       console.error("Error fetching failures:", err);
@@ -54,7 +56,6 @@ const FailuresList = () => {
       solution: failure.solution,
       failure_date: failure.failure_date,
       status: failure.status,
-      resolved_date: failure.resolved_date || "",
     });
   };
 
@@ -62,50 +63,103 @@ const FailuresList = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await fetch(`https://machine-backend.azurewebsites.net/ajouter/failure/${editingFailure.failure_id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      await fetch(
+        `https://machine-backend.azurewebsites.net/ajouter/failure/${editingFailure.failure_id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        }
+      );
       setEditingFailure(null);
       fetchFailures();
     } catch (err) {
       console.error("Error updating failure:", err);
     }
   };
-  
+
   // Filtered failures based on search
   const filteredFailures = failures.filter((f) => {
-    const matchesMachine = f.machine_name.toLowerCase().includes(searchMachine.toLowerCase());
-    const matchesDate = searchDate ? new Date(f.failure_date).toDateString() === searchDate.toDateString() : true;
-    return matchesMachine && matchesDate;
-  });
+    const machineName = String(f.machine_name || "").toLowerCase();
+    // Accept either machine_ref or machine_reference if backend naming varies
+    const machineRef = String(f.machine_ref || f.machine_reference || "").toLowerCase();
 
+    const sName = String(searchMachine || "").trim().toLowerCase();
+    const sRef = String(searchMachineRef || "").trim().toLowerCase();
+
+    // Only apply name filter if user typed something in name input
+    const matchesName = sName ? machineName.includes(sName) : true;
+    // Only apply ref filter if user typed something in ref input
+    const matchesRef = sRef ? machineRef.includes(sRef) : true;
+
+    // Both filters must pass (if provided). This allows searching by ref alone or name alone.
+    const matchesMachine = matchesName && matchesRef;
+
+    // Date checks (safe if failure_date missing)
+    const failureDate = f.failure_date ? new Date(f.failure_date) : null;
+    const withinRange =
+      (!startDate || (failureDate && failureDate >= startDate)) &&
+      (!endDate || (failureDate && failureDate <= endDate));
+
+    return matchesMachine && withinRange;
+  });
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Failures List</h1>
-     {/* Search Bar */}
-      <div className="flex gap-4 mb-4">
+
+      {/* Search Bar */}
+      <div className="flex flex-wrap gap-4 mb-4 items-center">
+        {/* Machine name filter */}
         <input
           type="text"
           placeholder="Search by machine name"
           value={searchMachine}
           onChange={(e) => setSearchMachine(e.target.value)}
-          className="border px-3 py-2 rounded w-1/2"
+          className="border px-3 py-2 rounded w-1/3"
         />
-        <DatePicker
-          selected={searchDate}
-          onChange={(date) => setSearchDate(date)}
-          className="border px-3 py-2 rounded w-1/2"
-          placeholderText="Search by date"
-          dateFormat="yyyy-MM-dd"
+
+        {/* Machine reference filter */}
+        <input
+          type="text"
+          placeholder="Search by machine reference"
+          value={searchMachineRef}
+          onChange={(e) => setSearchMachineRef(e.target.value)}
+          className="border px-3 py-2 rounded w-1/4"
         />
+
+        {/* Start date filter */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium">Start Date:</label>
+          <DatePicker
+            selected={startDate}
+            onChange={(date) => setStartDate(date)}
+            className="border px-3 py-2 rounded"
+            placeholderText="Select start date"
+            dateFormat="yyyy-MM-dd"
+            isClearable
+          />
+        </div>
+
+        {/* End date filter */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium">End Date:</label>
+          <DatePicker
+            selected={endDate}
+            onChange={(date) => setEndDate(date)}
+            className="border px-3 py-2 rounded"
+            placeholderText="Select end date"
+            dateFormat="yyyy-MM-dd"
+            isClearable
+          />
+        </div>
       </div>
+
       <table className="w-full border border-gray-300 bg-white rounded-lg shadow-md">
         <thead className="bg-gray-100">
           <tr>
-            <th className="p-2 border">Machine</th>
+            <th className="p-2 border">Machine Reference</th>
+            <th className="p-2 border">Machine Name</th>
             <th className="p-2 border">Failure</th>
             <th className="p-2 border">Solution</th>
             <th className="p-2 border">Date</th>
@@ -115,11 +169,14 @@ const FailuresList = () => {
         </thead>
         <tbody>
           {filteredFailures.map((f) => (
-            <tr key={f.id} className="text-center">
+            <tr key={f.failure_id} className="text-center">
+              <td className="p-2 border">{f.machine_ref}</td>
               <td className="p-2 border">{f.machine_name}</td>
               <td className="p-2 border">{f.failure_desc}</td>
               <td className="p-2 border">{f.solution}</td>
-              <td className="p-2 border">{new Date(f.failure_date).toLocaleString()}</td>
+              <td className="p-2 border">
+                {f.failure_date ? new Date(f.failure_date).toLocaleString() : "-"}
+              </td>
               <td className="p-2 border">{f.status}</td>
               <td className="p-2 border space-x-2">
                 <button
@@ -185,14 +242,6 @@ const FailuresList = () => {
                 <option value="In Progress">In Progress</option>
                 <option value="Resolved">Resolved</option>
               </select>
-              <input
-                type="datetime-local"
-                value={formData.resolved_date?.slice(0, 16) || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, resolved_date: e.target.value })
-                }
-                className="w-full border px-3 py-2 rounded"
-              />
 
               <div className="flex justify-between mt-4">
                 <button
