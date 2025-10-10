@@ -38,6 +38,7 @@ const Maintenancedetails = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [filterStartDate, setFilterStartDate] = useState(null);
   const [filterEndDate, setFilterEndDate] = useState(null);
+  const [recurrenceMessage, setRecurrenceMessage] = useState('');
   const filterRef = useRef(null);
 
   // Recurrence state
@@ -97,6 +98,12 @@ const Maintenancedetails = () => {
   const role = localStorage.getItem('role');
   const managerId = localStorage.getItem('user_id');
   const creator = localStorage.getItem('user_id');
+
+
+  // Add this useEffect to update the message whenever recurrence changes
+useEffect(() => {
+  setRecurrenceMessage(getRecurrenceMessage());
+}, [recurrence]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -496,6 +503,77 @@ useEffect(() => {
     return `${year}-${month}-${day}`;
   };
 
+  // Add this helper function after your state declarations
+const getRecurrenceMessage = () => {
+  if (!recurrence.frequency) return 'No recurrence';
+
+  const interval = recurrence.interval || 1;
+  const intervalText = interval === 1 ? '' : `every ${interval} `;
+
+  switch (recurrence.frequency) {
+    case 'daily':
+      return `Repeats ${intervalText}day${interval > 1 ? 's' : ''}`;
+
+    case 'weekly':
+      if (recurrence.weekdays && recurrence.weekdays.length > 0) {
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const selectedDays = recurrence.weekdays
+          .sort()
+          .map(day => daysOfWeek[day])
+          .join(', ');
+        return `Repeats ${intervalText}week${interval > 1 ? 's' : ''} on ${selectedDays}`;
+      }
+      return `Repeats ${intervalText}week${interval > 1 ? 's' : ''}`;
+
+    case 'monthly':
+      if (recurrence.monthly_day) {
+        const day = recurrence.monthly_day;
+        const suffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+        return `Repeats ${intervalText}month${interval > 1 ? 's' : ''} on the ${day}${suffix} day`;
+      } else if (recurrence.monthly_ordinal && recurrence.monthly_weekday !== null) {
+        const ordinals = {
+          first: 'First',
+          second: 'Second',
+          third: 'Third',
+          fourth: 'Fourth',
+          last: 'Last'
+        };
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return `Repeats ${intervalText}month${interval > 1 ? 's' : ''} on the ${ordinals[recurrence.monthly_ordinal]} ${daysOfWeek[recurrence.monthly_weekday]}`;
+      }
+      return `Repeats ${intervalText}month${interval > 1 ? 's' : ''}`;
+
+    case 'yearly':
+      if (recurrence.yearly_mode === 'day' && recurrence.yearly_month !== null && recurrence.yearly_day) {
+        const months = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        const day = recurrence.yearly_day;
+        const suffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+        return `Repeats ${intervalText}year${interval > 1 ? 's' : ''} on ${months[recurrence.yearly_month]} ${day}${suffix}`;
+      } else if (recurrence.yearly_mode === 'weekday' && recurrence.yearly_ordinal && recurrence.yearly_weekday !== null && recurrence.yearly_month !== null) {
+        const ordinals = {
+          first: 'First',
+          second: 'Second',
+          third: 'Third',
+          fourth: 'Fourth',
+          last: 'Last'
+        };
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const months = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        return `Repeats ${intervalText}year${interval > 1 ? 's' : ''} on the ${ordinals[recurrence.yearly_ordinal]} ${daysOfWeek[recurrence.yearly_weekday]} of ${months[recurrence.yearly_month]}`;
+      }
+      return `Repeats ${intervalText}year${interval > 1 ? 's' : ''}`;
+
+    default:
+      return 'No recurrence';
+  }
+};
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="relative flex-1 mx-4 pb-9 ">
@@ -880,6 +958,19 @@ useEffect(() => {
                         <div className="col-span-2 mt-6 border-t pt-4">
                           <h3 className="text-lg font-medium text-gray-700 mb-4">Recurrence Settings</h3>
                           
+                              {/* Recurrence Message Display */}
+             {recurrence.frequency && (
+               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800 font-medium">
+                📅 {recurrenceMessage}
+              {recurrence.recurrence_end_date && (
+                 <span className="block text-blue-700 mt-1">
+                   Ends on: {recurrence.recurrence_end_date.toLocaleDateString()}
+                 </span>
+                  )}
+                    </p>
+                   </div>
+                         )}
                           {/* Frequency and Interval */}
                           <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
@@ -902,7 +993,7 @@ useEffect(() => {
                                 className="w-full rounded-md border border-gray-300 p-2"
                               >
                                 <option value="">No Recurrence</option>
-                                <option value="daily">Days</option>
+                                <option value="daily">Daily</option>
                                 <option value="weekly">Weekly</option>
                                 <option value="monthly">Monthly</option>
                                 <option value="yearly">Yearly</option>
@@ -910,7 +1001,7 @@ useEffect(() => {
                             </div>
                             
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Repeat every</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Interval</label>
                               <input
                                 type="number"
                                 min="1"
@@ -1053,13 +1144,7 @@ useEffect(() => {
       </div>
     </div>
     
-    {/* Debug info - remove in production */}
-    <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-      <p>Debug - Monthly State:</p>
-      <p>Ordinal: {recurrence.monthly_ordinal || 'null'}</p>
-      <p>Weekday: {recurrence.monthly_weekday || 'null'}</p>
-      <p>Day: {recurrence.monthly_day || 'null'}</p>
-    </div>
+  
   </div>
 )}
 
@@ -1227,21 +1312,7 @@ useEffect(() => {
       </div>
     </div>
 
-    {/* Debug info */}
-    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
-      <p className="font-medium text-yellow-800">Debug - Yearly State:</p>
-      <div className="grid grid-cols-2 gap-2 mt-1">
-        <div>
-          <p>Mode: <span className="font-mono">{recurrence.yearly_mode || 'null'}</span></p>
-          <p>Month: <span className="font-mono">{recurrence.yearly_month !== null && recurrence.yearly_month !== undefined ? recurrence.yearly_month : 'null'}</span></p>
-          <p>Day: <span className="font-mono">{recurrence.yearly_day || 'null'}</span></p>
-        </div>
-        <div>
-          <p>Ordinal: <span className="font-mono">{recurrence.yearly_ordinal || 'null'}</span></p>
-          <p>Weekday: <span className="font-mono">{recurrence.yearly_weekday !== null && recurrence.yearly_weekday !== undefined ? recurrence.yearly_weekday : 'null'}</span></p>
-        </div>
-      </div>
-    </div>
+
   </div>
 )}
                           {/* Recurrence End Date */}
