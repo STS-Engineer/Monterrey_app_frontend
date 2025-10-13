@@ -131,7 +131,7 @@ const fetchMaintenanceEvents = async () => {
     console.log(`Fetching maintenance for ${role} user ID: ${userId}`);
     
     // Fetch all maintenance data
-    const response = await axios.get('http://localhost:4000/ajouter/maintenance');
+    const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/maintenance');
 
     // Filter data based on user role
     let filteredData = response.data;
@@ -243,7 +243,6 @@ const fetchMaintenanceEvents = async () => {
     setLoading(false);
   }
 };
-
 
   useEffect(() => {
     fetchMaintenanceEvents();
