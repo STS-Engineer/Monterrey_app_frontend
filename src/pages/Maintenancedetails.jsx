@@ -38,6 +38,7 @@ const Maintenancedetails = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [filterStartDate, setFilterStartDate] = useState(null);
   const [filterEndDate, setFilterEndDate] = useState(null);
+  const [recurrenceMessage, setRecurrenceMessage] = useState('');
   const filterRef = useRef(null);
 
   // Recurrence state
@@ -97,7 +98,11 @@ const Maintenancedetails = () => {
   const role = localStorage.getItem('role');
   const managerId = localStorage.getItem('user_id');
   const creator = localStorage.getItem('user_id');
-
+  
+  useEffect(() => {
+  setRecurrenceMessage(getRecurrenceMessage());
+ }, [recurrence]);
+  
   useEffect(() => {
     function handleClickOutside(event) {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -115,6 +120,77 @@ const Maintenancedetails = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showFilterOptions]);
+
+
+  const getRecurrenceMessage = () => {
+  if (!recurrence.frequency) return 'No recurrence';
+
+  const interval = recurrence.interval || 1;
+  const intervalText = interval === 1 ? '' : `every ${interval} `;
+
+  switch (recurrence.frequency) {
+    case 'daily':
+      return `Repeats ${intervalText}day${interval > 1 ? 's' : ''}`;
+
+    case 'weekly':
+      if (recurrence.weekdays && recurrence.weekdays.length > 0) {
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const selectedDays = recurrence.weekdays
+          .sort()
+          .map(day => daysOfWeek[day])
+          .join(', ');
+        return `Repeats ${intervalText}week${interval > 1 ? 's' : ''} on ${selectedDays}`;
+      }
+      return `Repeats ${intervalText}week${interval > 1 ? 's' : ''}`;
+
+    case 'monthly':
+      if (recurrence.monthly_day) {
+        const day = recurrence.monthly_day;
+        const suffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+        return `Repeats ${intervalText}month${interval > 1 ? 's' : ''} on the ${day}${suffix} day`;
+      } else if (recurrence.monthly_ordinal && recurrence.monthly_weekday !== null) {
+        const ordinals = {
+          first: 'First',
+          second: 'Second',
+          third: 'Third',
+          fourth: 'Fourth',
+          last: 'Last'
+        };
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return `Repeats ${intervalText}month${interval > 1 ? 's' : ''} on the ${ordinals[recurrence.monthly_ordinal]} ${daysOfWeek[recurrence.monthly_weekday]}`;
+      }
+      return `Repeats ${intervalText}month${interval > 1 ? 's' : ''}`;
+
+    case 'yearly':
+      if (recurrence.yearly_mode === 'day' && recurrence.yearly_month !== null && recurrence.yearly_day) {
+        const months = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        const day = recurrence.yearly_day;
+        const suffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+        return `Repeats ${intervalText}year${interval > 1 ? 's' : ''} on ${months[recurrence.yearly_month]} ${day}${suffix}`;
+      } else if (recurrence.yearly_mode === 'weekday' && recurrence.yearly_ordinal && recurrence.yearly_weekday !== null && recurrence.yearly_month !== null) {
+        const ordinals = {
+          first: 'First',
+          second: 'Second',
+          third: 'Third',
+          fourth: 'Fourth',
+          last: 'Last'
+        };
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const months = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        return `Repeats ${intervalText}year${interval > 1 ? 's' : ''} on the ${ordinals[recurrence.yearly_ordinal]} ${daysOfWeek[recurrence.yearly_weekday]} of ${months[recurrence.yearly_month]}`;
+      }
+      return `Repeats ${intervalText}year${interval > 1 ? 's' : ''}`;
+
+    default:
+      return 'No recurrence';
+  }
+};
 
   useEffect(() => {
     if (role === 'MANAGER' && managerId) {
@@ -954,6 +1030,21 @@ const formatHistoryValue = (value, field) => {
                         {/* 🔄 Recurrence Section */}
                         <div className="col-span-2 mt-6 border-t pt-4">
                           <h3 className="text-lg font-medium text-gray-700 mb-4">Recurrence Settings</h3>
+
+                          {/* Recurrence Message Display */}
+                        {recurrence.frequency && (
+                          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                           <p className="text-sm text-blue-800 font-medium">
+                            📅 {recurrenceMessage}
+                         {recurrence.recurrence_end_date && (
+                         <span className="block text-blue-700 mt-1">
+                           Ends on: {recurrence.recurrence_end_date.toLocaleDateString()}
+                        </span>
+                           )}
+                         </p>
+                        </div>
+                         )}
+
                           
                           {/* Frequency and Interval */}
                           <div className="grid grid-cols-2 gap-4 mb-4">
