@@ -38,7 +38,6 @@ const Maintenancedetails = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [filterStartDate, setFilterStartDate] = useState(null);
   const [filterEndDate, setFilterEndDate] = useState(null);
-  const [recurrenceMessage, setRecurrenceMessage] = useState('');
   const filterRef = useRef(null);
 
   // Recurrence state
@@ -98,12 +97,6 @@ const Maintenancedetails = () => {
   const role = localStorage.getItem('role');
   const managerId = localStorage.getItem('user_id');
   const creator = localStorage.getItem('user_id');
-
-
-  // Add this useEffect to update the message whenever recurrence changes
-useEffect(() => {
-  setRecurrenceMessage(getRecurrenceMessage());
-}, [recurrence]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -306,10 +299,26 @@ useEffect(() => {
     console.log('Initialized recurrence:', recurrenceData);
   }
 }, [selectedItem]);
+
   const openModal = (item, type) => {
     setSelectedItem(item);
     setModalType(type);
   };
+    const fetchMaintenanceData = async () => {
+      try {
+        const userId = localStorage.getItem('user_id');
+        const role = localStorage.getItem('role'); 
+        const response = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenancee?userId=${userId}&role=${role}`);
+        setData(response.data);
+        setFilteredData(response.data);
+      } catch (error) {
+        console.error("Error fetching maintenance data:", error);
+        toast.error("Failed to fetch maintenance data");
+      }
+    };
+  
+
+
 
   const openModaldelete = (item, actionType) => {
     if (actionType === 'delete') {
@@ -357,8 +366,13 @@ useEffect(() => {
     }
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateRecurrence()) {
+      return;
+    }
+
     const form = formRef.current;
     const UserId = localStorage.getItem('user_id');
 
@@ -414,23 +428,9 @@ useEffect(() => {
         recurrence: recurrenceData,
       });
 
-      // Refresh maintenance list
-      const maintenanceResponse = await axios.get('https://machine-backend.azurewebsites.net/ajouter/maintenance');
-      setData(maintenanceResponse.data);
+      // Fetch only the relevant maintenance data for the current user
+      await fetchMaintenanceData();
 
-      // Refresh history
-      const historyResponse = await axios.get(
-        `https://machine-backend.azurewebsites.net/ajouter/maintenance/${selectedItem.id}/history`
-      );
-
-      const parsedHistory = historyResponse.data.map(record => ({
-        ...record,
-        changes: typeof record.changes === 'string'
-          ? JSON.parse(record.changes)
-          : record.changes,
-      }));
-
-      setModificationHistory(parsedHistory);
 
       closeModal();
 
@@ -443,7 +443,6 @@ useEffect(() => {
       toast.error('Error updating maintenance task');
     }
   };
-
   const getUserEmail = (userId) => {
     const user = users.find(u => u.user_id === userId);
     if (user && user.email) {
@@ -503,76 +502,94 @@ useEffect(() => {
     return `${year}-${month}-${day}`;
   };
 
-  // Add this helper function after your state declarations
-const getRecurrenceMessage = () => {
-  if (!recurrence.frequency) return 'No recurrence';
+// ==== History / Recurrence formatting helpers (ADD THIS) ====
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-  const interval = recurrence.interval || 1;
-  const intervalText = interval === 1 ? '' : `every ${interval} `;
+const toOrdinal = (n) => {
+  if (n == null) return '';
+  const s = ["th","st","nd","rd"], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+};
 
-  switch (recurrence.frequency) {
-    case 'daily':
-      return `Repeats ${intervalText}day${interval > 1 ? 's' : ''}`;
+const capitalize = (s) => (typeof s === 'string' && s.length ? s[0].toUpperCase()+s.slice(1) : s);
 
-    case 'weekly':
-      if (recurrence.weekdays && recurrence.weekdays.length > 0) {
-        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const selectedDays = recurrence.weekdays
-          .sort()
-          .map(day => daysOfWeek[day])
-          .join(', ');
-        return `Repeats ${intervalText}week${interval > 1 ? 's' : ''} on ${selectedDays}`;
-      }
-      return `Repeats ${intervalText}week${interval > 1 ? 's' : ''}`;
+const PRETTY_FIELD_LABEL = {
+  machine_id: 'Machine',
+  maintenance_type: 'Maintenance Type',
+  task_name: 'Task Name',
+  task_description: 'Task Description',
+  start_date: 'Start Date',
+  end_date: 'End Date',
+  completed_date: 'Completed Date',
+  task_status: 'Task Status',
+  assigned_to: 'Assigned To',
+  // recurrence
+  frequency: 'Recurrence Frequency',
+  interval: 'Interval',
+  weekdays: 'Weekdays',
+  monthly_day: 'Day of Month',
+  monthly_ordinal: 'Monthly Ordinal',
+  monthly_weekday: 'Monthly Weekday',
+  yearly_mode: 'Yearly Mode',
+  yearly_month: 'Yearly Month',
+  yearly_day: 'Yearly Day',
+  yearly_weekday: 'Yearly Weekday',
+  recurrence_end_date: 'Recurrence End',
+  recurrence_enabled: 'Recurrence Enabled',
+};
 
-    case 'monthly':
-      if (recurrence.monthly_day) {
-        const day = recurrence.monthly_day;
-        const suffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
-        return `Repeats ${intervalText}month${interval > 1 ? 's' : ''} on the ${day}${suffix} day`;
-      } else if (recurrence.monthly_ordinal && recurrence.monthly_weekday !== null) {
-        const ordinals = {
-          first: 'First',
-          second: 'Second',
-          third: 'Third',
-          fourth: 'Fourth',
-          last: 'Last'
-        };
-        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        return `Repeats ${intervalText}month${interval > 1 ? 's' : ''} on the ${ordinals[recurrence.monthly_ordinal]} ${daysOfWeek[recurrence.monthly_weekday]}`;
-      }
-      return `Repeats ${intervalText}month${interval > 1 ? 's' : ''}`;
+const prettyLabel = (field) =>
+  PRETTY_FIELD_LABEL[field] || capitalize(field.replace(/_/g, ' '));
 
-    case 'yearly':
-      if (recurrence.yearly_mode === 'day' && recurrence.yearly_month !== null && recurrence.yearly_day) {
-        const months = [
-          'January', 'February', 'March', 'April', 'May', 'June',
-          'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-        const day = recurrence.yearly_day;
-        const suffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
-        return `Repeats ${intervalText}year${interval > 1 ? 's' : ''} on ${months[recurrence.yearly_month]} ${day}${suffix}`;
-      } else if (recurrence.yearly_mode === 'weekday' && recurrence.yearly_ordinal && recurrence.yearly_weekday !== null && recurrence.yearly_month !== null) {
-        const ordinals = {
-          first: 'First',
-          second: 'Second',
-          third: 'Third',
-          fourth: 'Fourth',
-          last: 'Last'
-        };
-        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const months = [
-          'January', 'February', 'March', 'April', 'May', 'June',
-          'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-        return `Repeats ${intervalText}year${interval > 1 ? 's' : ''} on the ${ordinals[recurrence.yearly_ordinal]} ${daysOfWeek[recurrence.yearly_weekday]} of ${months[recurrence.yearly_month]}`;
-      }
-      return `Repeats ${intervalText}year${interval > 1 ? 's' : ''}`;
+const formatHistoryValue = (value, field) => {
+  if (value === null || value === undefined) return '—';
 
+  if (field === 'machine_id') return getMachineName(value);
+  if (field === 'assigned_to' || field === 'creator') return getUserName(value);
+
+  if (field.endsWith('_date') || field === 'recurrence_end_date') {
+    const d = new Date(value);
+    if (isNaN(d)) return '—';
+    return d.toLocaleString('en-GB', {
+      year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  switch (field) {
+    case 'frequency':
+      return value ? capitalize(value) : 'None';
+    case 'interval':
+      return String(value ?? 1);
+    case 'weekdays':
+      return Array.isArray(value) && value.length
+        ? [...value].sort((a,b)=>a-b).map(i => DAY_NAMES[i]).join(', ')
+        : '—';
+    case 'monthly_day':
+      return value ? toOrdinal(Number(value)) : '—';
+    case 'monthly_ordinal': {
+      const m = { first:'First', second:'Second', third:'Third', fourth:'Fourth', last:'Last' };
+      return value ? (m[value] || capitalize(value)) : '—';
+    }
+    case 'monthly_weekday':
+      return (value === 0 || value) ? DAY_NAMES[Number(value)] : '—';
+    case 'yearly_mode':
+      return value === 'weekday' ? 'Specific Weekday' : value === 'day' ? 'Specific Date' : '—';
+    case 'yearly_month':
+      return (value === 0 || value) ? MONTH_NAMES[Number(value)] : '—';
+    case 'yearly_day':
+      return value ? toOrdinal(Number(value)) : '—';
+    case 'yearly_weekday':
+      return (value === 0 || value) ? DAY_NAMES[Number(value)] : '—';
+    case 'recurrence_enabled':
+      return value ? 'Enabled' : 'Disabled';
     default:
-      return 'No recurrence';
+      return typeof value === 'string' ? value : JSON.stringify(value);
   }
 };
+// ==== end helpers ====
+
+
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -670,7 +687,7 @@ const getRecurrenceMessage = () => {
                   <td className="px-2 py-1 text-gray-600 truncate max-w-[100px]">{getMachineName(item.machine_id)}</td>
                   <td className="px-2 py-1 text-gray-600">
                     <div className="flex items-center gap-1">
-                      {item.task_status !== 'Completed' && (
+                      {(role === 'MANAGER' || role === 'ADMIN') && item.task_status !== 'Completed' && (
                         <button 
                           onClick={() => openModal(item, 'edit')}
                           className="text-blue-600 hover:text-blue-800 p-0.5 rounded hover:bg-blue-50"
@@ -678,7 +695,7 @@ const getRecurrenceMessage = () => {
                           <PencilIcon className="w-4 h-4" />
                         </button>
                       )}
-                      {item.task_status !== 'Completed' && (
+                      {(role === 'MANAGER' || role === 'ADMIN') && item.task_status !== 'Completed' && (
                         <button
                           onClick={() => openModaldelete(item, 'delete')}
                           className="text-red-600 hover:text-red-800 p-0.5 rounded hover:bg-red-50"
@@ -773,40 +790,20 @@ const getRecurrenceMessage = () => {
                                   </div>
                                   
                                   <div className="space-y-1 text-sm">
-                                    {changedFields.map(([field, values]) => {
-                                      const formatValue = (value, field) => {
-                                        if (field === 'machine_id') return getMachineName(value);
-                                        if (field === 'assigned_to' || field === 'creator') return getUserName(value);
-                                        if (field.endsWith('_date')) {
-                                          return value
-                                            ? new Date(value).toLocaleString('en-GB', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: '2-digit',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                              })
-                                            : '-';
-                                        }
-                                        return value;
-                                      };
+                                  {changedFields.map(([field, values]) => (
+                               <div key={field} className="flex flex-wrap gap-2 items-baseline">
+                         <span className="font-medium">{prettyLabel(field)}:</span>
+                         {values.old !== null && values.old !== undefined && (
+                        <span className="text-gray-600 line-through pr-2">
+                          {formatHistoryValue(values.old, field)}
+                          </span>
+                          )}
+                        <span className="text-gray-900 font-medium">
+                         {formatHistoryValue(values.new, field)}
+                         </span>
+                           </div>
+                              ))}
 
-                                      return (
-                                        <div key={field} className="flex flex-wrap gap-2 items-baseline">
-                                          <span className="font-medium capitalize">
-                                            {field.replace(/_/g, ' ')}:
-                                          </span>
-                                          {values.old !== null && (
-                                            <span className="text-gray-600 line-through pr-2">
-                                              {formatValue(values.old, field) || 'N/A'}
-                                            </span>
-                                          )}
-                                          <span className="text-gray-900 font-medium">
-                                            {formatValue(values.new, field)}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
                                   </div>
                                 </div>
                               );
@@ -958,19 +955,6 @@ const getRecurrenceMessage = () => {
                         <div className="col-span-2 mt-6 border-t pt-4">
                           <h3 className="text-lg font-medium text-gray-700 mb-4">Recurrence Settings</h3>
                           
-                              {/* Recurrence Message Display */}
-             {recurrence.frequency && (
-               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800 font-medium">
-                📅 {recurrenceMessage}
-              {recurrence.recurrence_end_date && (
-                 <span className="block text-blue-700 mt-1">
-                   Ends on: {recurrence.recurrence_end_date.toLocaleDateString()}
-                 </span>
-                  )}
-                    </p>
-                   </div>
-                         )}
                           {/* Frequency and Interval */}
                           <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
@@ -993,7 +977,7 @@ const getRecurrenceMessage = () => {
                                 className="w-full rounded-md border border-gray-300 p-2"
                               >
                                 <option value="">No Recurrence</option>
-                                <option value="daily">Daily</option>
+                                <option value="daily">Days</option>
                                 <option value="weekly">Weekly</option>
                                 <option value="monthly">Monthly</option>
                                 <option value="yearly">Yearly</option>
@@ -1001,7 +985,7 @@ const getRecurrenceMessage = () => {
                             </div>
                             
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Interval</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Repeat every</label>
                               <input
                                 type="number"
                                 min="1"
@@ -1144,7 +1128,13 @@ const getRecurrenceMessage = () => {
       </div>
     </div>
     
-  
+    {/* Debug info - remove in production */}
+    <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+      <p>Debug - Monthly State:</p>
+      <p>Ordinal: {recurrence.monthly_ordinal || 'null'}</p>
+      <p>Weekday: {recurrence.monthly_weekday || 'null'}</p>
+      <p>Day: {recurrence.monthly_day || 'null'}</p>
+    </div>
   </div>
 )}
 
@@ -1312,7 +1302,21 @@ const getRecurrenceMessage = () => {
       </div>
     </div>
 
-
+    {/* Debug info */}
+    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+      <p className="font-medium text-yellow-800">Debug - Yearly State:</p>
+      <div className="grid grid-cols-2 gap-2 mt-1">
+        <div>
+          <p>Mode: <span className="font-mono">{recurrence.yearly_mode || 'null'}</span></p>
+          <p>Month: <span className="font-mono">{recurrence.yearly_month !== null && recurrence.yearly_month !== undefined ? recurrence.yearly_month : 'null'}</span></p>
+          <p>Day: <span className="font-mono">{recurrence.yearly_day || 'null'}</span></p>
+        </div>
+        <div>
+          <p>Ordinal: <span className="font-mono">{recurrence.yearly_ordinal || 'null'}</span></p>
+          <p>Weekday: <span className="font-mono">{recurrence.yearly_weekday !== null && recurrence.yearly_weekday !== undefined ? recurrence.yearly_weekday : 'null'}</span></p>
+        </div>
+      </div>
+    </div>
   </div>
 )}
                           {/* Recurrence End Date */}
