@@ -125,9 +125,35 @@ const [formData, setFormData] = useState({
 
 const fetchMaintenanceEvents = async () => {
   try {
-    const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/maintenance');
+    const userId = parseInt(localStorage.getItem('user_id'), 10);
+    const role = localStorage.getItem('role');
+    
+    console.log(`Fetching maintenance for ${role} user ID: ${userId}`);
+    
+    // Fetch all maintenance data
+    const response = await axios.get('http://localhost:4000/ajouter/maintenance');
 
-    const formattedEvents = response.data.flatMap(ev => {
+    // Filter data based on user role
+    let filteredData = response.data;
+    
+    if (role === 'EXECUTOR') {
+      // Executors only see tasks assigned to them
+      filteredData = response.data.filter(item => 
+        parseInt(item.assigned_to) === userId
+      );
+      console.log(`Executor view: Found ${filteredData.length} tasks assigned to user ${userId}`);
+    } else if (role === 'MANAGER') {
+      // Managers see tasks they created
+      filteredData = response.data.filter(item => 
+        parseInt(item.creator) === userId
+      );
+      console.log(`Manager view: Found ${filteredData.length} tasks created by user ${userId}`);
+    }
+    // ADMIN sees all data (no filtering)
+
+    console.log('Final filtered tasks:', filteredData);
+
+    const formattedEvents = filteredData.flatMap(ev => {
       try {
         // Convert ISO strings to Date objects for the base event
         const startDate = new Date(ev.start_date);
@@ -154,35 +180,31 @@ const fetchMaintenanceEvents = async () => {
           }];
         } else {
           // Recurring events - prepare the base event for generateRecurringEvents
-  const baseEvent = {
-  ...ev,
-  start_date: new Date(ev.start_date),
-  end_date: new Date(ev.end_date),
-  interval: ev.interval || 1,
-  weekdays: Array.isArray(ev.weekdays) ? ev.weekdays : [],
+          const baseEvent = {
+            ...ev,
+            start_date: new Date(ev.start_date),
+            end_date: new Date(ev.end_date),
+            interval: ev.interval || 1,
+            weekdays: Array.isArray(ev.weekdays) ? ev.weekdays : [],
 
-  recurrence_end_date: ev.recurrence_end_date ? new Date(ev.recurrence_end_date) : null,
+            recurrence_end_date: ev.recurrence_end_date ? new Date(ev.recurrence_end_date) : null,
 
-  // ---- Monthly (both modes) ----
-  // pattern_variant from DB should be 'monthly_nth' for "nth weekday" and null/other for day-of-month
-  monthly_mode: ev.pattern_variant === 'monthly_nth' ? 'weekday' : 'day',
-  monthly_day: ev.monthly_day ?? null,           // e.g. 5
-  monthly_ordinal: ev.monthly_ordinal ?? null,   // e.g. 1..4 or -1
-  monthly_weekday: ev.monthly_weekday ?? null,   // 0..6 (Sun..Sat)         // 0..6
+            // ---- Monthly (both modes) ----
+            monthly_mode: ev.pattern_variant === 'monthly_nth' ? 'weekday' : 'day',
+            monthly_day: ev.monthly_day ?? null,
+            monthly_ordinal: ev.monthly_ordinal ?? null,
+            monthly_weekday: ev.monthly_weekday ?? null,
 
-  // ---- Yearly (both modes) ----
-  // If pattern_variant === 'monthly_nth' → 'weekday' mode, else 'day' mode
-  yearly_mode: ev.recurrence === 'yearly' && ev.pattern_variant === 'monthly_nth' ? 'weekday' : 'day',
-  yearly_month: (ev.yearly_month != null ? ev.yearly_month - 1 : new Date(ev.start_date).getMonth()), // to 0..11
-  yearly_day: ev.yearly_day ?? new Date(ev.start_date).getDate(),
-  yearly_ordinal: ev.yearly_ordinal ?? 'first',            // can be number or string; generator will handle both
-  yearly_weekday: ev.yearly_weekday ?? new Date(ev.start_date).getDay(),
+            // ---- Yearly (both modes) ----
+            yearly_mode: ev.recurrence === 'yearly' && ev.pattern_variant === 'monthly_nth' ? 'weekday' : 'day',
+            yearly_month: (ev.yearly_month != null ? ev.yearly_month - 1 : new Date(ev.start_date).getMonth()),
+            yearly_day: ev.yearly_day ?? new Date(ev.start_date).getDate(),
+            yearly_ordinal: ev.yearly_ordinal ?? 'first',
+            yearly_weekday: ev.yearly_weekday ?? new Date(ev.start_date).getDay(),
 
-  // Keep recurrence kind
-  recurrence: ev.recurrence,
-  pattern_variant: ev.pattern_variant || null,
-};
-
+            recurrence: ev.recurrence,
+            pattern_variant: ev.pattern_variant || null,
+          };
 
           const instances = generateRecurringEvents(baseEvent);
           return instances.map(instance => ({
