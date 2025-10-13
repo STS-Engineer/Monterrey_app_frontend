@@ -442,6 +442,88 @@ useEffect(() => {
     }
   };
 
+  const validateRecurrence = () => {
+  // If no recurrence is set, validation passes
+  if (!recurrence.frequency) {
+    return true;
+  }
+
+  // Validate interval
+  if (!recurrence.interval || recurrence.interval < 1) {
+    toast.error('Recurrence interval must be at least 1');
+    return false;
+  }
+
+  // Weekly validation
+  if (recurrence.frequency === 'weekly') {
+    if (!recurrence.weekdays || recurrence.weekdays.length === 0) {
+      toast.error('Please select at least one weekday for weekly recurrence');
+      return false;
+    }
+  }
+
+  // Monthly validation
+  if (recurrence.frequency === 'monthly') {
+    const hasDayOfMonth = recurrence.monthly_day !== null && recurrence.monthly_day !== undefined;
+    const hasWeekdayPattern = recurrence.monthly_ordinal && recurrence.monthly_weekday !== null && recurrence.monthly_weekday !== undefined;
+    
+    if (!hasDayOfMonth && !hasWeekdayPattern) {
+      toast.error('Please select either a day of month or weekday pattern for monthly recurrence');
+      return false;
+    }
+
+    if (hasDayOfMonth && (recurrence.monthly_day < 1 || recurrence.monthly_day > 31)) {
+      toast.error('Day of month must be between 1 and 31');
+      return false;
+    }
+  }
+
+  // Yearly validation
+  if (recurrence.frequency === 'yearly') {
+    if (!recurrence.yearly_mode) {
+      toast.error('Please select a yearly recurrence pattern');
+      return false;
+    }
+
+    if (recurrence.yearly_mode === 'day') {
+      if (recurrence.yearly_month === null || recurrence.yearly_month === undefined) {
+        toast.error('Please select a month for yearly recurrence');
+        return false;
+      }
+      if (!recurrence.yearly_day || recurrence.yearly_day < 1 || recurrence.yearly_day > 31) {
+        toast.error('Day must be between 1 and 31 for yearly recurrence');
+        return false;
+      }
+    } else if (recurrence.yearly_mode === 'weekday') {
+      if (recurrence.yearly_month === null || recurrence.yearly_month === undefined) {
+        toast.error('Please select a month for yearly recurrence');
+        return false;
+      }
+      if (!recurrence.yearly_ordinal) {
+        toast.error('Please select an ordinal (first, second, etc.) for yearly recurrence');
+        return false;
+      }
+      if (recurrence.yearly_weekday === null || recurrence.yearly_weekday === undefined) {
+        toast.error('Please select a weekday for yearly recurrence');
+        return false;
+      }
+    }
+  }
+
+  // Validate recurrence end date if provided
+  if (recurrence.recurrence_end_date) {
+    const recurrenceEnd = new Date(recurrence.recurrence_end_date);
+    const startDate = editFormData.start_date;
+    
+    if (startDate && recurrenceEnd < startDate) {
+      toast.error('Recurrence end date cannot be before the start date');
+      return false;
+    }
+  }
+
+  return true;
+};
+
  const handleSubmit = async (e) => {
     e.preventDefault();
     
