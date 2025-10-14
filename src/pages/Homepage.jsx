@@ -1438,9 +1438,6 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           open={qrModalVisible}
           onCancel={handleQrModalClose}
           footer={[
-            <Button key="download" type="primary" onClick={downloadQRCode}>
-              Download QR Code
-            </Button>,
             <Button key="close" onClick={handleQrModalClose}>
               Close
             </Button>,
