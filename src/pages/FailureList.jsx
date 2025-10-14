@@ -7,7 +7,9 @@ const FailuresList = () => {
   const [editingFailure, setEditingFailure] = useState(null);
   const [viewingFailure, setViewingFailure] = useState(false);
   const [detailedFailure, setDetailedFailure] = useState(null);
+  const [machines, setMachines] = useState([]);
   const [formData, setFormData] = useState({
+     machine_id: "", 
     failure_desc: "",
     solution: "",
     failure_date: "",
@@ -30,9 +32,21 @@ const FailuresList = () => {
     }
   };
 
-  useEffect(() => {
-    fetchFailures();
-  }, []);
+ const fetchMachines = async () => {
+  try {
+    const res = await fetch("https://machine-backend.azurewebsites.net/ajouter/machines");
+    const data = await res.json();
+    setMachines(data); // expect [{machine_id, machine_name}]
+  } catch (err) {
+    console.error("Error fetching machines:", err);
+  }
+};
+
+useEffect(() => {
+  fetchFailures();
+  fetchMachines();  // <— add this
+}, []);
+
 
   // Delete a failure
   const handleDelete = async (failure_id) => {
@@ -48,15 +62,17 @@ const FailuresList = () => {
   };
 
   // Open edit modal
-  const openEdit = (failure) => {
-    setEditingFailure(failure);
-    setFormData({
-      failure_desc: failure.failure_desc,
-      solution: failure.solution,
-      failure_date: failure.failure_date,
-      status: failure.status,
-    });
-  };
+const openEdit = (failure) => {
+  setEditingFailure(failure);
+  setFormData({
+    machine_id: failure.machine_id ?? "",         // <— add this
+    failure_desc: failure.failure_desc,
+    solution: failure.solution,
+    failure_date: failure.failure_date,
+    status: failure.status,
+  });
+};
+
 
   // Submit edit form
   const handleEditSubmit = async (e) => {
@@ -244,6 +260,25 @@ const FailuresList = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h2 className="text-xl font-bold mb-4 text-gray-800">Edit Failure</h2>
             <form onSubmit={handleEditSubmit} className="space-y-3">
+
+                      {/* Machine select (by name) */}
+        <label className="block text-sm font-medium text-gray-700">Machine</label>
+        <select
+          value={formData.machine_id}
+          onChange={(e) => setFormData({ ...formData, machine_id: e.target.value })}
+          className="w-full border px-3 py-2 rounded"
+          required
+        >
+          <option value="" disabled>Select a machine</option>
+          {machines.map((m) => (
+            <option key={m.machine_id} value={m.machine_id}>
+              {m.machine_name}
+            </option>
+          ))}
+        </select>
+
+  
+
               <input
                 type="text"
                 value={formData.failure_desc}
