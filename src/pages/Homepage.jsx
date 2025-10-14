@@ -2190,9 +2190,6 @@ const Card = ({ machine, onDelete, onUpdate }) => {
     <Button key="print" onClick={handlePrintQRCode} icon={<PrinterOutlined />}>
       Print QR Code
     </Button>,
-    <Button key="download" type="primary" onClick={downloadQRCode}>
-      Download QR Code
-    </Button>,
     <Button key="close" onClick={() => setQrModalVisible(false)}>
       Close
     </Button>,
