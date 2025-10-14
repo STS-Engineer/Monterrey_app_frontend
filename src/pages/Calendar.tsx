@@ -59,7 +59,7 @@ const Calendar: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
 useEffect(() => {
-  fetch("http://localhost:4000/ajouter/users")
+  fetch("https://machine-backend.azurewebsites.net/ajouter/users")
     .then((res) => res.json())
     .then((data) => setUsers(data))
     .catch((err) => console.error("Error fetching users:", err));
@@ -68,7 +68,7 @@ useEffect(() => {
   useEffect(() => {
     const fetchMaintenanceEvents = async () => {
       try {
-        const response = await axios.get("http://localhost:4000/ajouter/maintenance");
+        const response = await axios.get("https://machine-backend.azurewebsites.net/ajouter/maintenance");
         console.log("Fetched data:", response.data)
         const fetchedEvents: CalendarEvent[] = response.data.map((event: any) => ({
           id: event.id,
@@ -260,7 +260,7 @@ const getUserEmail = (userId: string) => {
     onClick={async (e) => {
       e.preventDefault();
       try {
-        const response = await fetch(`http://localhost:4000/ajouter/maintenance/${selectedEvent.id}`, {
+        const response = await fetch(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${selectedEvent.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
