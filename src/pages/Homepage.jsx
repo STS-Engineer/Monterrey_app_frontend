@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo  } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {Layout,  Modal, Steps, Form, Input, Upload, Button, Select, Switch, Row, Col, message, notification  } from "antd";
-import { EditOutlined, DeleteOutlined, FileTextOutlined, SettingOutlined, HistoryOutlined, IdcardOutlined, EnvironmentOutlined, ShopOutlined, AppstoreOutlined, CalendarOutlined, ToolOutlined, DashboardOutlined, BarcodeOutlined, UserOutlined, PlusOutlined, EyeOutlined, QrcodeOutlined, PrinterOutlined  } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, FileTextOutlined, SettingOutlined, HistoryOutlined, IdcardOutlined, EnvironmentOutlined, ShopOutlined, AppstoreOutlined, CalendarOutlined, ToolOutlined, DashboardOutlined, BarcodeOutlined, UserOutlined, PlusOutlined, EyeOutlined, QrcodeOutlined, PrinterOutlined   } from '@ant-design/icons';
 import { 
   SearchOutlined
 } from '@ant-design/icons';
@@ -574,8 +574,9 @@ await Promise.all(toUpdate.map(async (station) => {
       message.error(error.message || 'Update failed');
     }
   };
-
-const downloadQRCode = () => {
+  
+  
+  const downloadQRCode = () => {
   if (!currentQrMachine) return;
 
   // Get the QR code canvas from your MachineQRCode component
@@ -603,158 +604,77 @@ const handlePrintQRCode = () => {
     return;
   }
 
-  // Create the URL that the QR code should redirect to
-  const machineUrl = `https://machinery-system.azurewebsites.net/machine/${currentQrMachine.machine_id}`;
+  // Create the data for the QR code
+  const qrData = JSON.stringify({
+    machine_id: currentQrMachine.machine_id,
+    machine_ref: currentQrMachine.machine_ref,
+    machine_name: currentQrMachine.machine_name,
+    brand: currentQrMachine.brand,
+    model: currentQrMachine.model,
+    type: "machine"
+  });
 
-  // Use a QR code generator API with the correct URL
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(machineUrl)}`;
+  // Use a QR code generator API instead of loading external library
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
 
-  // Get machine image URL
-  const machineImageUrl = currentQrMachine.machineimagefile 
-    ? `http://localhost:4000/uploads/${currentQrMachine.machineimagefile}`
-    : null;
-
-  const printWindow = window.open('', '_blank', 'width=800,height=1000');
+  const printWindow = window.open('', '_blank', 'width=600,height=700');
   
   if (!printWindow) {
     message.error('Popup blocked! Please allow popups for this site and try again.');
     return;
   }
 
-  // Format boolean values for display
-  const formatBoolean = (value) => {
-    if (value === true) return 'Yes';
-    if (value === false) return 'No';
-    return 'N/A';
-  };
-
   const printContent = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Machine Details - ${currentQrMachine.machine_name}</title>
+      <title>QR Code - ${currentQrMachine.machine_name}</title>
       <style>
         body {
           margin: 0;
-          padding: 30px;
-          background: white;
-          font-family: Arial, sans-serif;
-          color: #333;
-        }
-        .print-container {
-          max-width: 700px;
-          margin: 0 auto;
-        }
-        .header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #333;
-          gap: 30px;
-        }
-        .machine-image {
-          width: 200px;
-          height: 150px;
-          object-fit: cover;
-          border: 2px solid #ddd;
-          border-radius: 8px;
-          background: #f8f9fa;
-        }
-        .placeholder-image {
-          width: 200px;
-          height: 150px;
-          background: #f8f9fa;
-          border: 2px dashed #ddd;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #999;
-          font-size: 14px;
-        }
-        .header-info {
-          flex: 1;
-        }
-        .header h1 {
-          margin: 0 0 10px 0;
-          color: #333;
-          font-size: 24px;
-        }
-        .header .ref {
-          font-size: 18px;
-          color: #666;
-          font-weight: bold;
-        }
-        .content {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 30px;
-          margin-bottom: 30px;
-        }
-        .section {
-          margin-bottom: 25px;
-        }
-        .section h3 {
-          margin: 0 0 15px 0;
-          padding-bottom: 8px;
-          border-bottom: 1px solid #ddd;
-          color: #333;
-          font-size: 16px;
-        }
-        .info-grid {
-          display: grid;
-          gap: 8px;
-        }
-        .info-item {
-          display: flex;
-          justify-content: space-between;
-          padding: 4px 0;
-        }
-        .info-label {
-          font-weight: bold;
-          color: #555;
-        }
-        .info-value {
-          color: #333;
-          text-align: right;
-        }
-        .qr-section {
-          grid-column: 1 / -1;
-          text-align: center;
-          margin: 20px 0;
-          padding: 20px;
-          background: #f8f9fa;
-          border-radius: 10px;
+          padding: 40px;
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
+          min-height: calc(100vh - 80px);
+          background: white;
+          font-family: Arial, sans-serif;
+        }
+        .print-container {
+          text-align: center;
+          max-width: 400px;
+        }
+        .machine-info {
+          background: #f8f9fa;
+          padding: 20px;
+          border-radius: 10px;
+          margin-bottom: 30px;
+          border: 1px solid #e9ecef;
+        }
+        .machine-info h2 {
+          margin: 0 0 10px 0;
+          color: #333;
+        }
+        .machine-info p {
+          margin: 5px 0;
+          color: #666;
         }
         .qr-image {
-          width: 250px;
-          height: 250px;
-          border: 2px solid #333;
+          width: 300px;
+          height: 300px;
+          border: 1px solid #ddd;
           border-radius: 8px;
           padding: 10px;
           background: white;
         }
         .instructions {
-          margin-top: 15px;
+          margin-top: 20px;
           color: #666;
           font-style: italic;
         }
-        .url-info {
-          margin-top: 10px;
-          font-size: 12px;
-          color: #888;
-          word-break: break-all;
-          max-width: 400px;
-        }
         .no-print {
-          text-align: center;
           margin-top: 30px;
-          padding-top: 20px;
-          border-top: 1px solid #ddd;
         }
         button {
           padding: 10px 20px;
@@ -769,14 +689,20 @@ const handlePrintQRCode = () => {
           background: #1890ff;
           color: white;
         }
+        .print-btn:hover {
+          background: #40a9ff;
+        }
         .close-btn {
           background: #6c757d;
           color: white;
         }
+        .close-btn:hover {
+          background: #5a6268;
+        }
         @media print {
           body { 
             margin: 0 !important;
-            padding: 15px !important;
+            padding: 20px !important;
           }
           .no-print { 
             display: none !important; 
@@ -786,192 +712,40 @@ const handlePrintQRCode = () => {
     </head>
     <body>
       <div class="print-container">
-        <!-- Header with Machine Image -->
-        <div class="header">
-          ${machineImageUrl ? 
-            `<img src="${machineImageUrl}" alt="${currentQrMachine.machine_name}" class="machine-image" 
-                 onerror="this.parentNode.innerHTML = '<div class=\\'placeholder-image\\'>No Image Available</div>' + this.parentNode.innerHTML" />` : 
-            `<div class="placeholder-image">No Image Available</div>`
-          }
-          <div class="header-info">
-            <h1>${currentQrMachine.machine_name || 'Machine Details'}</h1>
-            <div class="ref">Reference: ${currentQrMachine.machine_ref || 'N/A'}</div>
-            ${currentQrMachine.status ? `<div style="margin-top: 5px; color: #666;">Status: ${currentQrMachine.status}</div>` : ''}
-          </div>
+        <div class="machine-info">
+          <h2>${currentQrMachine.machine_name}</h2>
+          <p><strong>Reference:</strong> ${currentQrMachine.machine_ref}</p>
+          <p><strong>Brand:</strong> ${currentQrMachine.brand || 'N/A'}</p>
+          <p><strong>Model:</strong> ${currentQrMachine.model || 'N/A'}</p>
         </div>
-
-        <!-- Main Content -->
-        <div class="content">
-          <!-- Machine Identification -->
-          <div class="section">
-            <h3>Machine Identification</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Brand:</span>
-                <span class="info-value">${currentQrMachine.brand || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Model:</span>
-                <span class="info-value">${currentQrMachine.model || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Product Line:</span>
-                <span class="info-value">${currentQrMachine.product_line || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Production Line:</span>
-                <span class="info-value">${currentQrMachine.production_line || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Machine ID:</span>
-                <span class="info-value">${currentQrMachine.machine_id || 'N/A'}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Technical Specifications -->
-          <div class="section">
-            <h3>Technical Specifications</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Production Rate:</span>
-                <span class="info-value">${currentQrMachine.production_rate || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Voltage:</span>
-                <span class="info-value">${currentQrMachine.voltage || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Phases:</span>
-                <span class="info-value">${currentQrMachine.phases || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Amperage:</span>
-                <span class="info-value">${currentQrMachine.amperage || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Frequency:</span>
-                <span class="info-value">${currentQrMachine.frequency || 'N/A'}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Facility Requirements -->
-          <div class="section">
-            <h3>Facility Requirements</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Air Needed:</span>
-                <span class="info-value">${formatBoolean(currentQrMachine.air_needed)}</span>
-              </div>
-              ${currentQrMachine.air_needed ? `
-                <div class="info-item">
-                  <span class="info-label">Air Pressure:</span>
-                  <span class="info-value">${currentQrMachine.air_pressure || 'N/A'} ${currentQrMachine.air_pressure_unit || ''}</span>
-                </div>
-              ` : ''}
-              <div class="info-item">
-                <span class="info-label">Water Cooling:</span>
-                <span class="info-value">${formatBoolean(currentQrMachine.water_cooling)}</span>
-              </div>
-              ${currentQrMachine.water_cooling ? `
-                <div class="info-item">
-                  <span class="info-label">Water Temp:</span>
-                  <span class="info-value">${currentQrMachine.water_temp || 'N/A'} ${currentQrMachine.water_temp_unit || ''}</span>
-                </div>
-              ` : ''}
-              <div class="info-item">
-                <span class="info-label">Dust Extraction:</span>
-                <span class="info-value">${formatBoolean(currentQrMachine.dust_extraction)}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Fume Extraction:</span>
-                <span class="info-value">${formatBoolean(currentQrMachine.fume_extraction)}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Additional Information -->
-          <div class="section">
-            <h3>Additional Information</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Consumables:</span>
-                <span class="info-value">${currentQrMachine.consumables || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Fixture Numbers:</span>
-                <span class="info-value">${currentQrMachine.fixture_numbers || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Gage Numbers:</span>
-                <span class="info-value">${currentQrMachine.gage_numbers || 'N/A'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Tooling Numbers:</span>
-                <span class="info-value">${currentQrMachine.tooling_numbers || 'N/A'}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- QR Code Section -->
-          <div class="qr-section">
-            <h3>Quick Access QR Code</h3>
-            <img src="${qrCodeUrl}" alt="QR Code for ${currentQrMachine.machine_name}" class="qr-image" 
-                 onerror="this.src='https://via.placeholder.com/250x250/ffffff/000000?text=QR+Error'" />
-            <p class="instructions">Scan this QR code to view complete machine details online</p>
-            <p class="url-info">
-              <strong>URL:</strong> ${machineUrl}
-            </p>
-          </div>
+        
+        <div class="qr-code-container">
+          <img src="${qrCodeUrl}" alt="QR Code for ${currentQrMachine.machine_name}" class="qr-image" 
+               onerror="this.src='https://via.placeholder.com/300x300/ffffff/000000?text=QR+Error'" />
         </div>
-
-        <!-- Footer with timestamp -->
-        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
-          Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
-        </div>
-
-        <!-- Print Buttons -->
+        
+        <p class="instructions">Scan QR code to view machine details</p>
+        
         <div class="no-print">
-          <button class="print-btn" onclick="window.print()">Print Document</button>
+          <button class="print-btn" onclick="window.print()">Print QR Code</button>
           <button class="close-btn" onclick="window.close()">Close Window</button>
         </div>
       </div>
 
       <script>
-        // Auto-print after images load
-        let imagesLoaded = 0;
-        const totalImages = ${machineImageUrl ? 2 : 1}; // QR code + machine image (if exists)
-        
-        function checkAllImagesLoaded() {
-          imagesLoaded++;
-          if (imagesLoaded >= totalImages) {
-            console.log('All images loaded successfully');
-            setTimeout(() => {
-              window.print();
-            }, 1000);
-          }
-        }
-        
-        // Wait for QR code image to load
+        // Auto-print after image loads
         const qrImage = document.querySelector('.qr-image');
-        qrImage.onload = checkAllImagesLoaded;
-        qrImage.onerror = function() {
-          console.error('Failed to load QR image');
-          checkAllImagesLoaded(); // Continue even if QR fails
+        qrImage.onload = function() {
+          console.log('QR image loaded successfully');
+          setTimeout(() => {
+            window.print();
+          }, 1000);
         };
         
-        // Wait for machine image to load (if exists)
-        ${machineImageUrl ? `
-          const machineImg = document.querySelector('.machine-image');
-          if (machineImg) {
-            machineImg.onload = checkAllImagesLoaded;
-            machineImg.onerror = function() {
-              console.error('Failed to load machine image');
-              checkAllImagesLoaded(); // Continue even if machine image fails
-            };
-          }
-        ` : 'checkAllImagesLoaded();'} // If no machine image, start counting from 1
+        qrImage.onerror = function() {
+          console.error('Failed to load QR image');
+          alert('Failed to generate QR code. Please check your internet connection and try again.');
+        };
       </script>
     </body>
     </html>
@@ -980,9 +754,9 @@ const handlePrintQRCode = () => {
   printWindow.document.write(printContent);
   printWindow.document.close();
   
-  console.log('Print window opened with machine image and complete details');
+  console.log('Print window opened with QR code URL:', qrCodeUrl);
 };
-  
+
   const fetchStationsByMachineId = async (machineId) => {
     try {
       const res = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/stations/${machineId}`);
@@ -1438,6 +1212,9 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           open={qrModalVisible}
           onCancel={handleQrModalClose}
           footer={[
+            <Button key="download" type="primary" onClick={downloadQRCode}>
+              Download QR Code
+            </Button>,
             <Button key="close" onClick={handleQrModalClose}>
               Close
             </Button>,
@@ -2181,14 +1958,18 @@ const Card = ({ machine, onDelete, onUpdate }) => {
     />
   </div>
 
-  {/* QR Code Modal */}
-   <Modal
+
+{/* QR Code Modal */}
+<Modal
   title={`QR Code - ${currentQrMachine?.machine_name || "Machine"}`}
   open={qrModalVisible}
   onCancel={() => setQrModalVisible(false)}
   footer={[
     <Button key="print" onClick={handlePrintQRCode} icon={<PrinterOutlined />}>
       Print QR Code
+    </Button>,
+    <Button key="download" type="primary" onClick={downloadQRCode}>
+      Download QR Code
     </Button>,
     <Button key="close" onClick={() => setQrModalVisible(false)}>
       Close
@@ -2347,7 +2128,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
 `}
 </style>
                     
-             <Modal
+         <Modal
           title="Edit Machine"
           width={1000}
           visible={visible}
@@ -2746,10 +2527,11 @@ const Card = ({ machine, onDelete, onUpdate }) => {
 
 }
     
+
 </div>
+
         </Form>
             </Modal>
-
 
             <div style={{
               width: '24px',
