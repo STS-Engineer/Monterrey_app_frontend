@@ -230,7 +230,7 @@ const openEdit = (failure) => {
               <div className="space-y-2 text-gray-700">
                 <p><strong>Machine Name:</strong> {detailedFailure.machine_name}</p>
                 <p><strong>Machine Reference:</strong> {detailedFailure.machine_ref}</p>
-                <p><strong>Failure Description:</strong> {detailedFailure.failure_desc}</p>
+                <p><strong>Root cause:</strong> {detailedFailure.failure_desc}</p>
                 <p><strong>Solution:</strong> {detailedFailure.solution}</p>
                 <p><strong>Status:</strong> {detailedFailure.status}</p>
                 <p>
