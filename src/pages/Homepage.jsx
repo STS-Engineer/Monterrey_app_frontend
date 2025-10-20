@@ -77,6 +77,7 @@ const Homepage = () => {
      hmi_program: [],
      cpk_data: [],
      validation_document: [],
+     operation_instruction: [],
 
           // Added for file uploads
    });
@@ -112,6 +113,7 @@ const fileLinks = [
   { label: 'machine_manual', key: 'machine_manual' },
   { label: 'cpk_data', key: 'cpk_data' },
   { label: 'validation_document', key: 'validation_document' },
+  { label: 'operation_instruction', key: 'operation_instruction' },
   { label: 'parameter_studies', key: 'parameter_studies'}
 ];
 
@@ -245,6 +247,7 @@ const onUpdate = async (updatedMachine) => {
           "electrical_diagram",
           "cpk_data",
           "validation_document",
+          "operation_instruction",
           "parameter_studies",
         ].includes(key) &&
         updatedMachine[key] !== undefined &&
@@ -267,6 +270,7 @@ const onUpdate = async (updatedMachine) => {
       "machine_manual",
       "cpk_data",
       "validation_document",
+      "operation_instruction",
       "parameter_studies",
     ];
 
@@ -502,6 +506,7 @@ const handleUpdate = async (machineId) => {
       "machine_manual",
       "cpk_data",
       "validation_document",
+      "operation_instruction",
       "parameter_studies",
     ];
 
@@ -977,6 +982,7 @@ const fetchMachineDetails = async (machineId) => {
       hmi_program: createFileItem(data.hmi_program, '-9'),
       cpk_data: createFileItem(data.cpk_data, '-10'),
       validation_document: createFileItem(data.validation_document, '-11'),
+      operation_instruction: createFileItem(data.operation_instruction, '-11'),
       parameter_studies: createFileItem(data.parameter_studies, '-12'),
     };
 
@@ -2537,7 +2543,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           {currentStep === 3 && (
             <>
               <Row gutter={[32, 32]}>
-                {['cpk_data', 'validation_document'].map(field => (
+                {['cpk_data', 'validation_document','operation_instruction'].map(field => (
                   <Col span={12} key={field}>
           <Form.Item
   label={field.replace(/_/g, ' ').toUpperCase()}
