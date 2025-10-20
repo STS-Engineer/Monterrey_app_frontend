@@ -69,7 +69,8 @@ const AddMachineForm = () => {
     cpk_data: [],  
     validation_document: [],
     parameter_studies: [],      // Added for file uploads
-    operation_instruction: []
+    operation_instruction: [],
+    powerunits: '',
   });
   
   const [stations, setStations]= useState([]);
@@ -1248,7 +1249,7 @@ message.warning("No products selected.");
             <Form.Item
               label="Production Rate"
               name="production_rate"
-              
+              style={{ flex: 1 }}
             >
               <Input
                 type="text"
@@ -1259,7 +1260,22 @@ message.warning("No products selected.");
                 placeholder="Enter production rate"
               />
             </Form.Item>
-          
+
+            {/* Power Units */}
+            <Form.Item
+              label="Power Units"
+              name="powerunits"
+           
+            >
+              <Input
+                type="text"
+                value={formData.powerunits}
+                onChange={(e) =>
+                  setFormData({ ...formData, powerunits: e.target.value })
+                }
+                placeholder="Enter Power Units"
+              />
+            </Form.Item>
           
             </Row>
 
