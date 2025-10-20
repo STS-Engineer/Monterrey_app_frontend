@@ -226,63 +226,87 @@ const debouncedStationChange = useMemo(() =>
 
 
 
-  const onUpdate = async (updatedMachine) => {
-    try {
-      const formData = new FormData();
-  
-      // Append text fields
-      for (const key in updatedMachine) {
-        if (
-          key !== "machineimagefile" &&
-          key !== "files_3d" &&
-          key !== "files_2d" &&
-          key !== "spare_parts_list" &&
-          key !== "plc_program" &&
-          key !== "hmi_program" &&
-          key !== "other_programs" &&
-          key !== "machine_manual"
-        ) {
-          formData.append(key, updatedMachine[key]);
-        }
+const onUpdate = async (updatedMachine) => {
+  try {
+    const formData = new FormData();
+
+    // Append text fields
+    for (const key in updatedMachine) {
+      if (
+        ![
+          "machineimagefile",
+          "files_3d",
+          "files_2d",
+          "spare_parts_list",
+          "plc_program",
+          "hmi_program",
+          "other_programs",
+          "machine_manual",
+          "electrical_diagram",
+          "cpk_data",
+          "validation_document",
+          "parameter_studies",
+        ].includes(key) &&
+        updatedMachine[key] !== undefined &&
+        updatedMachine[key] !== null
+      ) {
+        formData.append(key, updatedMachine[key]);
       }
-  
-      // Append files (only first file if you follow your backend logic)
-      const fileFields = [
-        "machineimagefile",
-        "files_3d",
-        "files_2d",
-        "spare_parts_list",
-        "plc_program",
-        "hmi_program",
-        "other_programs",
-        "machine_manual"
-      ];
-  
-      fileFields.forEach(field => {
-        if (updatedMachine[field] && updatedMachine[field][0]) {
-          formData.append(field, updatedMachine[field][0]);
-        }
-      });
-  
-      const response = await axios.put(
-        `https://machine-backend.azurewebsites.net/ajouter/machines/${updatedMachine.machine_id}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          }
-        }
-      );
-  
-      const updated = response.data;
-      message.success("Machine updated successfully");
-      return updated;
-    } catch (error) {
-      console.error("Update failed:", error);
-      message.error("Failed to update machine");
-      return null;
     }
-  };
+
+    // Handle ALL file fields
+    const fileFields = [
+      "machineimagefile",
+      "files_3d",
+      "files_2d",
+      "spare_parts_list",
+      "electrical_diagram",
+      "plc_program",
+      "hmi_program",
+      "other_programs",
+      "machine_manual",
+      "cpk_data",
+      "validation_document",
+      "parameter_studies",
+    ];
+
+    fileFields.forEach((field) => {
+      const files = updatedMachine[field] || [];
+      if (files.length > 0 && files[0].originFileObj instanceof File) {
+        // New file uploaded
+        formData.append(field, files[0].originFileObj);
+        formData.append(`${field}_action`, "upload");
+        console.log(`Appending NEW file for ${field}:`, files[0].originFileObj.name);
+      } else if (files.length === 0) {
+        // No files, indicate deletion
+        formData.append(`${field}_action`, "delete");
+        console.log(`Setting ${field}_action to 'delete'`);
+      } else {
+        // Existing file, keep it
+        formData.append(`${field}_action`, "keep");
+        console.log(`Keeping existing file for ${field}`);
+      }
+    });
+
+    const response = await axios.put(
+      `https://machine-backend.azurewebsites.net/ajouter/machines/${updatedMachine.machine_id}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    const updated = response.data;
+    message.success(`Machine ${updatedMachine.machine_id} updated successfully`, 2);
+    return updated;
+  } catch (error) {
+    console.error("Update failed:", error);
+    message.error("Failed to update machine");
+    return null;
+  }
+};
 
   const handleStationOk = async () => {
     try {
@@ -430,150 +454,239 @@ await Promise.all(toUpdate.map(async (station) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   }, []);
   
-  const handleUpdate = async (machineId) => {
-    try {
-      // Step 1: Validate form values and prepare data
-      const finalStepValues = await form.validateFields();
-      const values = {
-        ...formValues,
-        ...finalStepValues,
-      };
-  
-      // Step 2: Prepare form data for update
-      const formPayload = new FormData();
-      Object.entries(values).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          value.forEach(item => formPayload.append(`${key}[]`, item));
-        } else if (value !== undefined && value !== null) {
+const handleUpdate = async (machineId) => {
+  try {
+    console.log("Starting update for machine:", machineId);
+
+    // Step 1: Validate form values and prepare data
+    const finalStepValues = await form.validateFields();
+    const values = {
+      ...formValues,
+      ...finalStepValues,
+    };
+
+    console.log("Form values:", values);
+
+    // Step 2: Prepare form data for update
+    const formPayload = new FormData();
+
+    // Append all text fields
+    Object.entries(values).forEach(([key, value]) => {
+      if (key !== "product_id" && value !== undefined && value !== null) {
+        // Convert boolean values to string for FormData
+        if (typeof value === "boolean") {
+          formPayload.append(key, value.toString());
+        } else {
           formPayload.append(key, value);
         }
+      }
+    });
+
+    // Handle product_id as array
+    if (values.product_id && Array.isArray(values.product_id)) {
+      values.product_id.forEach((id) => {
+        formPayload.append("product_id", id);
       });
-  
-      // Step 3: Prepare file fields (if any)
-      const fileFields = ['machineimagefile', 'files_3d', 'files_2d', 'spare_parts_list', 'plc_program'];
-      fileFields.forEach(field => {
-        const files = formData[field] || [];
-        files.forEach(file => {
-          const realFile = file.originFileObj || null;
-          if (realFile instanceof File) {
-            formPayload.append(field, realFile);
+    }
+
+    // Step 3: Handle ALL file fields with proper action tracking
+    const allFileFields = [
+      "machineimagefile",
+      "files_3d",
+      "files_2d",
+      "spare_parts_list",
+      "electrical_diagram",
+      "plc_program",
+      "hmi_program",
+      "other_programs",
+      "machine_manual",
+      "cpk_data",
+      "validation_document",
+      "parameter_studies",
+    ];
+
+    console.log("Processing file fields:", allFileFields);
+
+    allFileFields.forEach((field) => {
+      const files = formData[field] || [];
+      console.log(`Field ${field} has files:`, files);
+
+      // Check if there's a new file with originFileObj (new upload)
+      const newFiles = files.filter((file) => file.originFileObj instanceof File);
+
+      if (newFiles.length > 0) {
+        // New file uploaded - send the file and mark action as 'upload'
+        formPayload.append(field, newFiles[0].originFileObj);
+        formPayload.append(`${field}_action`, "upload");
+        console.log(`✅ Uploading NEW file for ${field}:`, newFiles[0].originFileObj.name);
+      } else if (files.length === 0) {
+        // No files at all - explicitly mark for deletion
+        formPayload.append(`${field}_action`, "delete");
+        console.log(`🗑️ Marking ${field} for deletion (no files)`);
+      } else if (files.length > 0 && files[0].url) {
+        // File exists with URL (existing file) - keep it
+        formPayload.append(`${field}_action`, "keep");
+        console.log(`✔️ Keeping existing file for ${field}`);
+      } else {
+        // Default: keep existing
+        formPayload.append(`${field}_action`, "keep");
+        console.log(`➡️ Default keep for ${field}`);
+      }
+    });
+
+    const userId = localStorage.getItem("user_id");
+    if (userId) formPayload.append("user_id", userId);
+
+    // Debug: Log what we're sending
+    console.log("=== FINAL FORM DATA BEING SENT ===");
+    for (let [key, value] of formPayload.entries()) {
+      if (value instanceof File) {
+        console.log(`📁 ${key}: [File] ${value.name} (${value.type})`);
+      } else {
+        console.log(`📝 ${key}: ${value}`);
+      }
+    }
+
+    // Step 4: Send update request to the backend
+    console.log(`Sending PUT request to: https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`);
+
+    const response = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`, {
+      method: "PUT",
+      body: formPayload,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Server response not OK:", response.status, errText);
+      throw new Error(`Update failed: ${errText}`);
+    }
+
+    const updatedMachine = await response.json();
+    console.log("✅ Machine updated successfully:", updatedMachine);
+
+    // Step 5: Handle product associations
+    const existingProductsRes = await fetch(
+      `https://machine-backend.azurewebsites.net/ajouter/machineproducts/${machineId}`
+    );
+    const existingProductData = await existingProductsRes.json();
+    console.log("Existing products for this machine:", existingProductData);
+
+    if (!Array.isArray(existingProductData)) {
+      console.error("❌ Invalid machineProduct data:", existingProductData);
+      message.error("Failed to fetch machine-product data.");
+      return;
+    }
+
+    // Clean existing product IDs
+    const cleanedExistingProductIds = [
+      ...new Set(existingProductData.filter((id) => id && id.trim() !== "")),
+    ];
+    console.log("Cleaned Existing product IDs:", cleanedExistingProductIds);
+
+    // Validate selected product IDs
+    const selectedProductIds = values.product_id
+      .filter((id) => id && id.toString().trim() !== "")
+      .map((id) => id.toString().trim());
+    console.log("Selected product IDs:", selectedProductIds);
+
+    // Determine which products need to be deleted
+    const toDelete = cleanedExistingProductIds.filter(
+      (id) => !selectedProductIds.includes(id)
+    );
+    console.log("Products to delete:", toDelete);
+
+    // Delete products that are no longer selected
+    await Promise.all(
+      toDelete.map(async (productId) => {
+        const deleteResponse = await fetch(
+          `https://machine-backend.azurewebsites.net/ajouter/machineproducts`,
+          {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              machine_id: machineId,
+              product_id: productId,
+              user_id: userId,
+            }),
           }
-        });
-      });
-  
-      const userId = localStorage.getItem('user_id');
-      if (userId) formPayload.append('user_id', userId);
-  
-      // Step 4: Send update request to the backend
-      const response = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`, {
-        method: 'PUT',
-        body: formPayload,
-      });
-  
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Update failed: ${errText}`);
-      }
-  
-      const updatedMachine = await response.json();
-      console.log("Machine updated successfully:", updatedMachine);
-  
-      // Step 5: Fetch existing machine products
-      const existingProductsRes = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machineproducts/${machineId}`);
-      const existingProductData = await existingProductsRes.json();
-      console.log("Existing products for this machine:", existingProductData);
-  
-      if (!Array.isArray(existingProductData)) {
-        console.error("❌ Invalid machineProduct data:", existingProductData);
-        message.error("Failed to fetch machine-product data.");
-        return;
-      }
-  
-      // Step 6: Clean existing product IDs
-      const cleanedExistingProductIds = [...new Set(existingProductData.filter(id => id && id.trim() !== ''))];
-      console.log("Cleaned Existing product IDs:", cleanedExistingProductIds);
-  
-      // Step 7: Validate selected product IDs
-      const selectedProductIds = values.product_id
-        .filter(id => id && id.trim() !== '')
-        .map(id => id.trim());
-      console.log("Selected product IDs:", selectedProductIds);
-  
-      // Step 8: Determine which products need to be deleted
-      const toDelete = cleanedExistingProductIds.filter(id => !selectedProductIds.includes(id));
-      console.log("Products to delete:", toDelete);
-  
-      // Step 9: Delete products that are no longer selected
-      await Promise.all(toDelete.map(async (productId) => {
-        const deleteResponse = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machineproducts`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ machine_id: machineId, product_id: productId, user_id: userId }),
-        });
-  
+        );
+
         if (!deleteResponse.ok) {
           throw new Error(`Failed to delete product with ID: ${productId}`);
         }
         console.log(`Deleted product with ID: ${productId}`);
-      }));
-  
-      // Step 10: Add new products
-      const toAdd = selectedProductIds.filter(id => !cleanedExistingProductIds.includes(id));
-      console.log("Products to add:", toAdd);
-  
-      await Promise.all(toAdd.map(async (productId) => {
-        const addResponse = await fetch(`https://machine-backend.azurewebsites.net/ajouter/machineproducts`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ machine_id: machineId, product_id: productId, user_id: userId }),
-        });
-  
+      })
+    );
+
+    // Add new products
+    const toAdd = selectedProductIds.filter(
+      (id) => !cleanedExistingProductIds.includes(id)
+    );
+    console.log("Products to add:", toAdd);
+
+    await Promise.all(
+      toAdd.map(async (productId) => {
+        const addResponse = await fetch(
+          `https://machine-backend.azurewebsites.net/ajouter/machineproducts`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              machine_id: machineId,
+              product_id: productId,
+              user_id: userId,
+            }),
+          }
+        );
+
         if (!addResponse.ok) {
           throw new Error(`Failed to add product with ID: ${productId}`);
         }
         console.log(`Added product with ID: ${productId}`);
+      })
+    );
+
+    // Refetch machines to update the list
+    console.log("Refetching machines list...");
+    const fetchResponse = await fetch("https://machine-backend.azurewebsites.net/ajouter/machines");
+    const fetchedMachines = await fetchResponse.json();
+
+    const validatedData = fetchedMachines.map((machine) => ({
+      ...machine,
+      machine_ref: String(machine.machine_ref || ""),
+    }));
+
+    setMachines(validatedData);
+    setFilteredMachines(validatedData);
+
+    // Refetch the current machine details to update the view modal
+    if (selectedMachineId) {
+      console.log("Refetching updated machine details...");
+      const updatedDetailsResponse = await axios.get(
+        `https://machine-backend.azurewebsites.net/ajouter/machines/${selectedMachineId}`
+      );
+      const updatedDetails = updatedDetailsResponse.data;
+
+      // Update the selected machine in the view modal
+      setSelectedMachine((prev) => ({
+        ...prev,
+        ...updatedDetails,
       }));
-  
-
-  
-      // ✅ Refetch machines
-      const fetchResponse = await fetch("https://machine-backend.azurewebsites.net/ajouter/machines");
-      const fetchedMachines = await fetchResponse.json();
-  
-      const validatedData = fetchedMachines.map(machine => ({
-        ...machine,
-        machine_ref: String(machine.machine_ref || '')
-      }));
-  
-      setMachines(validatedData);
-      setFilteredMachines(validatedData);
-  
-      setVisible(false);
-       
-         // ✅ Show the custom success message
-         setShowSuccessMsg(true);
-        
-         // Auto-hide it after 4 seconds
-           // ⏳ Wait 5 seconds, then hide message and navigate
-         setTimeout(() => {
-         setShowSuccessMsg(false);
-         navigate('/machinelist');
-         }, 2000);
-
-
-
-      // Set form state if updated machine is selected
-      if (selectedMachineId === updatedMachine.machine_id) {
-        form.setFieldsValue({ ...updatedMachine });
-        setFormValues(updatedMachine);
-      }
-
-       
-    } catch (error) {
-      console.error('❌ Update error:', error);
-      message.error(error.message || 'Update failed');
     }
-  };
+
+    setVisible(false);
+    setShowSuccessMsg(true);
+
+    // Auto-hide the message after 2 seconds
+    setTimeout(() => {
+      setShowSuccessMsg(false);
+      navigate("/machinelist");
+    }, 2000);
+  } catch (error) {
+    console.error("❌ Update error:", error);
+    message.error(error.message || "Update failed");
+  }
+};
   
   
   const downloadQRCode = () => {
@@ -818,87 +931,76 @@ const handlePrintQRCode = () => {
   };
   
 
-  
-  const fetchMachineDetails = async (machineId) => {
-    try {
-      const response = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`);
-      const data = response.data;
+const fetchMachineDetails = async (machineId) => {
+  try {
+    const response = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}`);
+    const data = response.data;
 
-      console.log('data', data);
-  
-      // 2. Fetch only product_ids
-      const productRes = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}/product-ids`);
-      const selectedProductIds = productRes.data.product_ids;
-  
-      // Optional: fetch all product options for the dropdown
-      const allProductsRes = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/products`);
-      const productOptions = allProductsRes.data.map(product => ({
-        label: product.product_description,
-        value: product.product_id,
-      }));
-      setProductOptions(productOptions);
-  
-      const updatedFormData = {
-        ...data,
-        dust_extraction: data.dust_extraction ? 'Yes' : 'No',
-        fume_extraction: data.fume_extraction ? 'Yes' : 'No',
-        product_id: selectedProductIds,
-        machineimagefile: data.machineimagefile
-          ? [{ uid: '-1', name: data.machineimagefile, url: `https://machine-backend.azurewebsites.net/uploads/${data.machineimagefile}` }]
-          : [],
-        machine_manual: data.machine_manual
-          ? [{ uid: '-2', name: data.machine_manual, url: `https://machine-backend.azurewebsites.net/uploads/${data.machine_manual}` }]
-          : [],
-        files_3d: data.files_3d
-          ? [{ uid: '-3', name: data.files_3d, url: `https://machine-backend.azurewebsites.net/uploads/${data.files_3d}` }]
-          : [],
-        files_2d: data.files_2d
-          ? [{ uid: '-4', name: data.files_2d, url: `https://machine-backend.azurewebsites.net/uploads/${data.files_2d}` }]
-          : [],
-        spare_parts_list: data.spare_parts_list
-          ? [{ uid: '-5', name: data.spare_parts_list, url: `https://machine-backend.azurewebsites.net/uploads/${data.spare_parts_list}` }]
-          : [],
-        other_programs: data.other_programs
-          ? [{ uid: '-6', name: data.other_programs, url: `https://machine-backend.azurewebsites.net/uploads/${data.other_programs}` }]
-          : [],
-        electrical_diagram: data.electrical_diagram
-          ? [{ uid: '-7', name: data.electrical_diagram, url: `https://machine-backend.azurewebsites.net/uploads/${data.electrical_diagram}` }]
-          : [],
-        plc_program: data.plc_program
-          ? [{ uid: '-8', name: data.plc_program, url: `https://machine-backend.azurewebsites.net/uploads/${data.plc_program}` }]
-          : [],
-        hmi_program: data.hmi_program
-          ? [{ uid: '-9', name: data.hmi_program, url: `https://machine-backend.azurewebsites.net/uploads/${data.hmi_program}` }]
-          : [],
-        cpk_data: data.cpk_data
-          ? [{ uid: '-10', name: data.cpk_data, url: `https://machine-backend.azurewebsites.net/uploads/${data.cpk_data}` }]
-          : [],
-        validation_document: data.validation_document
-          ? [{ uid: '-11', name: data.validation_document, url: `https://machine-backend.azurewebsites.net/uploads/${data.validation_document}` }]
-          : [],
-      };
-  
-      // Update form state
-      setFormData(updatedFormData);
-      form.setFieldsValue(updatedFormData); // ✅ explicitly update form fields
-      await fetchStationsByMachineId(machineId); // ⬅️ Call this here
-      setSelectedMachineId(machineId);
-       // Fetch maintenance history
-      const historyResponse = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${machineId}/history`);
-      setModificationHistory(historyResponse.data);
-      setLoadingHistory(false);
-      setVisible(true);
+    console.log('Fetched machine data:', data);
 
-      // 👇 FORCING FIELD SYNC IMMEDIATELY
-      setTimeout(() => {
+    // 2. Fetch only product_ids
+    const productRes = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/machines/${machineId}/product-ids`);
+    const selectedProductIds = productRes.data.product_ids;
+
+    // Optional: fetch all product options for the dropdown
+    const allProductsRes = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/products`);
+    const productOptions = allProductsRes.data.map(product => ({
+      label: product.product_description,
+      value: product.product_id,
+    }));
+    setProductOptions(productOptions);
+
+    // Helper function to create file list items
+    const createFileItem = (fileName, uid) => {
+      if (!fileName) return [];
+      return [{
+        uid: uid,
+        name: fileName,
+        status: 'done',
+        url: `https://machine-backend.azurewebsites.net/uploads/${fileName}`
+      }];
+    };
+
+    const updatedFormData = {
+      ...data,
+      dust_extraction: data.dust_extraction ? 'Yes' : 'No',
+      fume_extraction: data.fume_extraction ? 'Yes' : 'No',
+      product_id: selectedProductIds,
+      machineimagefile: createFileItem(data.machineimagefile, '-1'),
+      machine_manual: createFileItem(data.machine_manual, '-2'),
+      files_3d: createFileItem(data.files_3d, '-3'),
+      files_2d: createFileItem(data.files_2d, '-4'),
+      spare_parts_list: createFileItem(data.spare_parts_list, '-5'),
+      other_programs: createFileItem(data.other_programs, '-6'),
+      electrical_diagram: createFileItem(data.electrical_diagram, '-7'),
+      plc_program: createFileItem(data.plc_program, '-8'),
+      hmi_program: createFileItem(data.hmi_program, '-9'),
+      cpk_data: createFileItem(data.cpk_data, '-10'),
+      validation_document: createFileItem(data.validation_document, '-11'),
+      parameter_studies: createFileItem(data.parameter_studies, '-12'),
+    };
+
+    // Update form state
+    setFormData(updatedFormData);
+    form.setFieldsValue(updatedFormData); // ✅ explicitly update form fields
+    await fetchStationsByMachineId(machineId); // ⬅️ Call this here
+    setSelectedMachineId(machineId);
+    
+    // Fetch maintenance history
+    const historyResponse = await axios.get(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${machineId}/history`);
+    setModificationHistory(historyResponse.data);
+    setLoadingHistory(false);
+    setVisible(true);
+
+    // 👇 FORCING FIELD SYNC IMMEDIATELY
+    setTimeout(() => {
       form.setFieldsValue(updatedFormData);
-      }, 100); // short delay ensures modal is mounted
+    }, 100); // short delay ensures modal is mounted
 
-    } catch (error) {
-      console.error("Error fetching machine details:", error);
-    }
-  };
-  
+  } catch (error) {
+    console.error("Error fetching machine details:", error);
+  }
+};
 
   const steps = [
     { title: 'Machine Identification' },
@@ -907,29 +1009,39 @@ const handlePrintQRCode = () => {
     { title: 'Validation & Specifications' },
   ];
 
-  const handleFileUpload = (field) => ({ fileList }) => {
-    // Explicitly validate and sanitize fileList
-    let sanitizedFileList = [];
-    if (Array.isArray(fileList)) {
-      sanitizedFileList = fileList.filter(
-        (file) => file && typeof file === 'object'
-      );
-    }
+const handleFileUpload = (field) => ({ fileList }) => {
+  console.log(`File upload for ${field}:`, fileList);
   
-    // Force array type to prevent any edge cases
-    if (!Array.isArray(sanitizedFileList)) {
-      console.error('Sanitized fileList is not an array:', sanitizedFileList);
-      sanitizedFileList = [];
-    }
+  // Ensure fileList is always an array
+  const sanitizedFileList = Array.isArray(fileList) ? fileList : [];
   
-    setFormData((prev) => ({
-      ...prev,
-      [field]: sanitizedFileList,
-    }));
-    
-    form.setFieldsValue({ [field]: sanitizedFileList });
-  };
+  console.log(`Setting ${field} to:`, sanitizedFileList);
   
+  // Update formData immediately
+  setFormData(prev => ({
+    ...prev,
+    [field]: sanitizedFileList,
+  }));
+  
+  // Also update the form field
+  form.setFieldsValue({ [field]: sanitizedFileList });
+};
+
+const handleRemoveFile = (field) => () => {
+  console.log(`Removing file from ${field}`);
+  
+  // Set the field to empty array
+  setFormData(prev => ({
+    ...prev,
+    [field]: [],
+  }));
+  
+  // Also update the form field
+  form.setFieldsValue({ [field]: [] });
+  
+  return true; // Return true to allow removal
+};
+
 const showModal = async (machine) => {
   try {
     const response = await axios.get(
@@ -1212,6 +1324,9 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           open={qrModalVisible}
           onCancel={handleQrModalClose}
           footer={[
+            <Button key="download" type="primary" onClick={downloadQRCode}>
+              Download QR Code
+            </Button>,
             <Button key="close" onClick={handleQrModalClose}>
               Close
             </Button>,
@@ -1965,6 +2080,9 @@ const Card = ({ machine, onDelete, onUpdate }) => {
     <Button key="print" onClick={handlePrintQRCode} icon={<PrinterOutlined />}>
       Print QR Code
     </Button>,
+    <Button key="download" type="primary" onClick={downloadQRCode}>
+      Download QR Code
+    </Button>,
     <Button key="close" onClick={() => setQrModalVisible(false)}>
       Close
     </Button>,
@@ -2029,56 +2147,6 @@ const Card = ({ machine, onDelete, onUpdate }) => {
             </div>
 
      
-    {showSuccessMsg && (
-    <div
-    style={{
-      position: "fixed",
-      top: "14%", // Vertical positioning key
-      left: "50%",
-      transform: "translateX(-50%)",
-      background: "linear-gradient(145deg, #b2f0e8, #8ce4d9)",
-      color: "#005a64",
-      padding: "20px 45px",
-      borderRadius: "14px",
-      fontSize: "17px",
-      fontWeight: "600",
-      textAlign: "center",
-      zIndex: 1000,
-      boxShadow: "0 8px 30px rgba(0, 109, 117, 0.25)",
-      animation: "softPulse 1.2s ease-in-out, floatUp 0.6s ease-out",
-      minWidth: "320px",
-      maxWidth: "90%",
-      letterSpacing: "0.3px",
-      border: "2px solid rgba(255, 255, 255, 0.2)",
-      display: "flex",
-      alignItems: "center",
-      gap: "15px",
-      backdropFilter: "blur(8px)",
-      transformOrigin: "center center",
-    }}
-  >
-    <div style={{
-      animation: "gentleFlip 0.8s both",
-      fontSize: "28px"
-    }}>
-      ✅
-    </div>
-    <div>
-      Machine Updated Successfully!
-      <div style={{
-        height: "4px",
-        background: "rgba(0, 109, 117, 0.2)",
-        position: "absolute",
-        bottom: "-10px",
-        left: "50%",
-        width: "80%",
-        transform: "translateX(-50%)",
-        borderRadius: "4px",
-        animation: "middleExpand 3.5s ease-in-out forwards"
-      }} />
-    </div>
-  </div>
-)}
 
 <style>
 {`
@@ -2152,6 +2220,8 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                   fileList={formData.machineimagefile}
                   beforeUpload={() => false}
                   onChange={handleFileUpload('machineimagefile')}
+                  onRemove={handleRemoveFile('machineimagefile')}
+                  multiple={false}
                 >
                   {formData.machineimagefile?.length ? null : (
                     <div>
@@ -2391,6 +2461,9 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                   [field]: fileList, // update only the current field
                 }));
               }}
+            onChange={handleFileUpload(field)}
+            onRemove={handleRemoveFile(field)}
+            multiple={false}
             >
               {formData[field]?.length ? null : (
                 <div>
@@ -2424,6 +2497,9 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                   [field]: fileList, // update the specific field with the new file list
                 }));
               }}
+             onChange={handleFileUpload(field)}
+            onRemove={handleRemoveFile(field)}
+            multiple={false}
             >
               {formData[field]?.length ? null : (
                 <div>
@@ -2476,6 +2552,9 @@ const Card = ({ machine, onDelete, onUpdate }) => {
         [field]: Array.isArray(fileList) ? fileList : [],
       }));
     }}
+         onChange={handleFileUpload(field)}
+          onRemove={handleRemoveFile(field)}
+          multiple={false}
   >
     {Array.isArray(formData[field]) && formData[field].length > 0 ? null : (
       <div>
@@ -2566,6 +2645,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
     </div>
   )}
 
+
         {/* Product Details Modal */}
         <Modal
           title={<span style={{ fontSize: '18px', fontWeight: 600 }}>Product Details</span>}
@@ -2638,6 +2718,57 @@ const Card = ({ machine, onDelete, onUpdate }) => {
         </Modal>
 </div> 
 
+
+    {showSuccessMsg && (
+    <div
+    style={{
+      position: "fixed",
+      top: "14%", // Vertical positioning key
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: "linear-gradient(145deg, #b2f0e8, #8ce4d9)",
+      color: "#005a64",
+      padding: "20px 45px",
+      borderRadius: "14px",
+      fontSize: "17px",
+      fontWeight: "600",
+      textAlign: "center",
+      zIndex: 1000,
+      boxShadow: "0 8px 30px rgba(0, 109, 117, 0.25)",
+      animation: "softPulse 1.2s ease-in-out, floatUp 0.6s ease-out",
+      minWidth: "320px",
+      maxWidth: "90%",
+      letterSpacing: "0.3px",
+      border: "2px solid rgba(255, 255, 255, 0.2)",
+      display: "flex",
+      alignItems: "center",
+      gap: "15px",
+      backdropFilter: "blur(8px)",
+      transformOrigin: "center center",
+    }}
+  >
+    <div style={{
+      animation: "gentleFlip 0.8s both",
+      fontSize: "28px"
+    }}>
+      ✅
+    </div>
+    <div>
+      Machine Updated Successfully!
+      <div style={{
+        height: "4px",
+        background: "rgba(0, 109, 117, 0.2)",
+        position: "absolute",
+        bottom: "-10px",
+        left: "50%",
+        width: "80%",
+        transform: "translateX(-50%)",
+        borderRadius: "4px",
+        animation: "middleExpand 3.5s ease-in-out forwards"
+      }} />
+    </div>
+  </div>
+)}
 
       {/* station modal*/}
       <Modal
