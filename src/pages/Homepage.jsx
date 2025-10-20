@@ -1877,6 +1877,8 @@ const Card = ({ machine, onDelete, onUpdate }) => {
         <DetailItem label="Model" value={selectedMachine?.model || 'N/A'} icon={<BarcodeOutlined />} />
         <DetailItem label="Product Line" value={`${selectedMachine?.product_line}`} icon={<DashboardOutlined />} />
         <DetailItem label="Production Line" value={selectedMachine?.production_line || 'N/A'} icon={<ToolOutlined />} />
+       <DetailItem label="Power Units" value={selectedMachine?.powerunits || 'N/A'} icon={<ToolOutlined />} />
+        <DetailItem label="Year" value={new Date().getFullYear()} icon={<CalendarOutlined />} />
       </div>
 
       <div>
