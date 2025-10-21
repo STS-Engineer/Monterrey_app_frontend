@@ -322,10 +322,36 @@ const Maintenancedetails = () => {
     fetchHistory();
   }, [modalType, selectedItem?.id]);
 
-  // Populate form when selectedItem changes
- // Update this useEffect in your frontend component
-// Update this in your useEffect that initializes recurrence
-// Update the recurrence initialization
+
+  // Add these helper functions to map between numeric and string ordinal values
+const mapOrdinalNumberToString = (ordinal) => {
+  if (ordinal === null || ordinal === undefined) return '';
+  
+  const mapping = {
+    1: 'first',
+    2: 'second', 
+    3: 'third',
+    4: 'fourth',
+    5: 'last'
+  };
+  
+  return mapping[ordinal] || '';
+};
+
+const mapOrdinalStringToNumber = (ordinalString) => {
+  if (!ordinalString) return null;
+  
+  const mapping = {
+    'first': 1,
+    'second': 2,
+    'third': 3, 
+    'fourth': 4,
+    'last': 5
+  };
+  
+  return mapping[ordinalString] || null;
+};
+  
 useEffect(() => {
   if (selectedItem) {
     setEditFormData({
@@ -336,27 +362,36 @@ useEffect(() => {
     // Determine yearly_mode based on existing data
     let yearly_mode = null;
     if (selectedItem.recurrence === 'yearly') {
-      if (selectedItem.yearly_ordinal && selectedItem.yearly_weekday) {
+      if (selectedItem.yearly_ordinal && selectedItem.yearly_weekday !== null && selectedItem.yearly_weekday !== undefined) {
         yearly_mode = 'weekday';
-      } else {
+      } else if (selectedItem.yearly_day) {
         yearly_mode = 'day';
       }
     }
-    
+
+    // Determine if monthly uses weekday pattern
+    const hasMonthlyWeekdayPattern = selectedItem.monthly_ordinal && 
+      selectedItem.monthly_weekday !== null && 
+      selectedItem.monthly_weekday !== undefined;
+
     const recurrenceData = selectedItem.recurrence ? {
       frequency: selectedItem.recurrence || '',
       interval: selectedItem.interval || 1,
       weekdays: selectedItem.weekdays || [],
       monthly_day: selectedItem.monthly_day || null,
-      monthly_ordinal: selectedItem.monthly_ordinal || null,
-      monthly_weekday: selectedItem.monthly_weekday || null,
+      monthly_ordinal: selectedItem.monthly_ordinal ? mapOrdinalNumberToString(selectedItem.monthly_ordinal) : null,
+      monthly_weekday: selectedItem.monthly_weekday !== null && selectedItem.monthly_weekday !== undefined 
+        ? selectedItem.monthly_weekday 
+        : null,
       yearly_mode: yearly_mode,
       yearly_month: selectedItem.yearly_month !== null && selectedItem.yearly_month !== undefined 
         ? selectedItem.yearly_month - 1 
         : null,
       yearly_day: selectedItem.yearly_day || null,
       yearly_ordinal: selectedItem.yearly_ordinal || null,
-      yearly_weekday: selectedItem.yearly_weekday || null,
+      yearly_weekday: selectedItem.yearly_weekday !== null && selectedItem.yearly_weekday !== undefined 
+        ? selectedItem.yearly_weekday 
+        : null,
       recurrence_end_date: selectedItem.recurrence_end_date ? new Date(selectedItem.recurrence_end_date) : null
     } : {
       frequency: '',
@@ -375,6 +410,12 @@ useEffect(() => {
     
     setRecurrence(recurrenceData);
     console.log('Initialized recurrence:', recurrenceData);
+    console.log('Monthly pattern detected:', {
+      hasMonthlyWeekdayPattern,
+      monthly_ordinal: selectedItem.monthly_ordinal,
+      monthly_weekday: selectedItem.monthly_weekday,
+      monthly_day: selectedItem.monthly_day
+    });
   }
 }, [selectedItem]);
 
@@ -1207,7 +1248,6 @@ const formatHistoryValue = (value, field) => {
                           )}
 
                           {/* Monthly Options */}
-                      {/* Monthly Options */}
 {recurrence.frequency === 'monthly' && (
   <div className="mb-4">
     <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Pattern</label>
@@ -1218,12 +1258,12 @@ const formatHistoryValue = (value, field) => {
           type="radio"
           id="monthly-day"
           name="monthly-mode"
-          checked={!recurrence.monthly_ordinal && !recurrence.monthly_weekday}
+          checked={!recurrence.monthly_ordinal && recurrence.monthly_weekday === null}
           onChange={() => setRecurrence(prev => ({ 
             ...prev, 
             monthly_ordinal: null,
             monthly_weekday: null,
-            monthly_day: prev.monthly_day || 1 // Default to day 1 if not set
+            monthly_day: prev.monthly_day || 1
           }))}
           className="text-blue-600 focus:ring-blue-500"
         />
@@ -1240,7 +1280,7 @@ const formatHistoryValue = (value, field) => {
             monthly_day: parseInt(e.target.value) || 1 
           }))}
           className="w-20 rounded-md border border-gray-300 p-1"
-          disabled={!!recurrence.monthly_ordinal || !!recurrence.monthly_weekday}
+          disabled={!!recurrence.monthly_ordinal || recurrence.monthly_weekday !== null}
         />
         <span className="text-sm text-gray-500">of the month</span>
       </div>
@@ -1251,12 +1291,12 @@ const formatHistoryValue = (value, field) => {
           type="radio"
           id="monthly-weekday"
           name="monthly-mode"
-          checked={!!recurrence.monthly_ordinal || !!recurrence.monthly_weekday}
+          checked={!!recurrence.monthly_ordinal || recurrence.monthly_weekday !== null}
           onChange={() => setRecurrence(prev => ({ 
             ...prev, 
             monthly_day: null,
-            monthly_ordinal: prev.monthly_ordinal || 'first', // Default to first if not set
-            monthly_weekday: prev.monthly_weekday || 1 // Default to Monday if not set
+            monthly_ordinal: prev.monthly_ordinal || 'first',
+            monthly_weekday: prev.monthly_weekday !== null && prev.monthly_weekday !== undefined ? prev.monthly_weekday : 1
           }))}
           className="text-blue-600 focus:ring-blue-500"
         />
@@ -1264,13 +1304,13 @@ const formatHistoryValue = (value, field) => {
           On the
         </label>
         <select
-          value={recurrence.monthly_ordinal || ''}
+          value={mapOrdinalNumberToString(recurrence.monthly_ordinal)}
           onChange={(e) => setRecurrence(prev => ({ 
             ...prev, 
-            monthly_ordinal: e.target.value 
+            monthly_ordinal: mapOrdinalStringToNumber(e.target.value)
           }))}
           className="rounded-md border border-gray-300 p-1"
-          disabled={!recurrence.monthly_ordinal && !recurrence.monthly_weekday}
+          disabled={!recurrence.monthly_ordinal && recurrence.monthly_weekday === null}
         >
           <option value="">Select</option>
           <option value="first">First</option>
@@ -1280,13 +1320,13 @@ const formatHistoryValue = (value, field) => {
           <option value="last">Last</option>
         </select>
         <select
-          value={recurrence.monthly_weekday || ''}
+          value={recurrence.monthly_weekday !== null && recurrence.monthly_weekday !== undefined ? recurrence.monthly_weekday : ''}
           onChange={(e) => setRecurrence(prev => ({ 
             ...prev, 
             monthly_weekday: parseInt(e.target.value) 
           }))}
           className="rounded-md border border-gray-300 p-1"
-          disabled={!recurrence.monthly_ordinal && !recurrence.monthly_weekday}
+          disabled={!recurrence.monthly_ordinal && recurrence.monthly_weekday === null}
         >
           <option value="">Day</option>
           <option value="0">Sunday</option>
@@ -1300,12 +1340,10 @@ const formatHistoryValue = (value, field) => {
         <span className="text-sm text-gray-500">of the month</span>
       </div>
     </div>
-    
   </div>
 )}
 
-                          {/* Yearly Options */}
-                    {/* Yearly Options */}
+
 {/* Yearly Options */}
 {/* Yearly Options */}
 {recurrence.frequency === 'yearly' && (
