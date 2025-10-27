@@ -1884,7 +1884,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
         <DetailItem label="Product Line" value={`${selectedMachine?.product_line}`} icon={<DashboardOutlined />} />
         <DetailItem label="Production Line" value={selectedMachine?.production_line || 'N/A'} icon={<ToolOutlined />} />
        <DetailItem label="Power Units" value={selectedMachine?.powerunits || 'N/A'} icon={<ToolOutlined />} />
-        <DetailItem label="Year" value={new Date().getFullYear()} icon={<CalendarOutlined />} />
+       <DetailItem label="Year" value={selectedMachine?.year || 'N/A'} icon={<ToolOutlined />} />
       </div>
 
       <div>
@@ -2381,12 +2381,21 @@ const Card = ({ machine, onDelete, onUpdate }) => {
               <Form.Item label="Frequency" name="frequency" rules={[{ pattern: /^\d+$/, message: 'frequency must be a number' }]}>
                 <Input  placeholder="Enter frequency" />
               </Form.Item>
+                      
+              <Form.Item label="powerunits" name="powerunits">
+                <Input  placeholder="Enter Power Units" />
+              </Form.Item>
+
+    
+              <Form.Item label="year" name="year">
+                <Input  placeholder="Enter Year" />
+              </Form.Item>
 
                    {/* Dropdown for Water Cooling (Yes/No) */}
-                                  <Form.Item
-                                   label="Water Cooling"
-                                    name="water_cooling"
-                                   valuePropName="checked"
+                   <Form.Item
+                      label="Water Cooling"
+                       name="water_cooling"
+                      valuePropName="checked"
                          >
                           <Switch
                           checkedChildren="yes"
@@ -2579,6 +2588,12 @@ const Card = ({ machine, onDelete, onUpdate }) => {
 
               <Form.Item label="Production Rate" name="production_rate"  rules={[{ pattern: /^\d+$/, message: ' must be a number' }]}>
                 <Input  placeholder="Enter production rate" />
+              </Form.Item>
+              <Form.Item label="powerunits" name="powerunits" >
+                <Input  placeholder="Enter powerunits" />
+              </Form.Item>
+               <Form.Item label="year" name="year" >
+                <Input  placeholder="Enter year" />
               </Form.Item>
             </>
           )}
