@@ -71,6 +71,7 @@ const AddMachineForm = () => {
     parameter_studies: [],      // Added for file uploads
     operation_instruction: [],
     powerunits: '',
+    year: '',
   });
   
   const [stations, setStations]= useState([]);
@@ -1243,14 +1244,12 @@ message.warning("No products selected.");
     </Form.Item>
   </Col>
 
-
-           
+             <Col span={8}>
             {/* Production Rate */}
             <Form.Item
               label="Production Rate"
               name="production_rate"
-              style={{ flex: 1 }}
-            >
+               >
               <Input
                 type="text"
                 value={formData.production_rate}
@@ -1260,12 +1259,13 @@ message.warning("No products selected.");
                 placeholder="Enter production rate"
               />
             </Form.Item>
-
-            {/* Power Units */}
+          </Col>
+            
+            <Col span={8}>
+                {/* Power Units */}
             <Form.Item
               label="Power Units"
               name="powerunits"
-           
             >
               <Input
                 type="text"
@@ -1276,8 +1276,26 @@ message.warning("No products selected.");
                 placeholder="Enter Power Units"
               />
             </Form.Item>
+            </Col>
+           <Col span={8}>
+           {/* Year */}
+            <Form.Item
+              label="Year"
+              name="year"
+           
+            >
+              <Input
+                type="text"
+                value={formData.year}
+                onChange={(e) =>
+                  setFormData({ ...formData, year: e.target.value })
+                }
+                placeholder="Enter Year"
+              />
+            </Form.Item>
+          </Col>
           
-            </Row>
+           </Row>
 
             {/* Buttons Section */}
 <Form.Item>
