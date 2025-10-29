@@ -5,11 +5,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { EventInput, DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { Modal } from "antd";
-import {
-  Snackbar,
-  Alert,
-} from "@mui/material";
-import DatePicker from "react-datepicker";
+import { Snackbar, Alert } from "@mui/material";
 import axios from "axios";
 
 interface CalendarEvent extends EventInput {
@@ -18,7 +14,15 @@ interface CalendarEvent extends EventInput {
     maintenance_type: string;
     task_description: string;
     executor: string;
+    executor_email: string;
+    creator: string;
+    creator_email: string;
+    machine_id: string;
+    machine_ref: string;
     status: string;
+    completed_date?: string | null;
+    recurrence?: string | null;
+    recurrence_end_date?: string | null;
   };
 }
 
@@ -30,170 +34,124 @@ interface SelectedEvent {
   maintenance_type: string;
   task_description: string;
   executor: string;
+  executor_email: string;
   status: string;
+  creator: string;
+  creator_email: string;
+  machine_id: string;
+  machine_ref: string;
+  completed_date?: string | null;
+  recurrence?: string | null;
+  recurrence_end_date?: string | null;
 }
 
 const Calendar: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<SelectedEvent | null>(null);
-  const [eventTitle, setEventTitle] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [eventStartDate, setEventStartDate] = useState("");
-  const [eventEndDate, setEventEndDate] = useState("");
-  const [eventLevel, setEventLevel] = useState(""); 
-  const [isModalOpen, setIsModalOpen] = useState(false); 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+   const [users, setUsers] = useState([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const calendarRef = useRef<FullCalendar>(null);
-  const [users, setUsers] = useState([]);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "info",
+  });
   const [loading, setLoading] = useState(true);
+  const calendarRef = useRef<FullCalendar>(null);
 
-  // Fetch users
+
+    // Fetch users
   useEffect(() => {
     fetch("https://machine-backend.azurewebsites.net/ajouter/users")
       .then((res) => res.json())
       .then((data) => setUsers(data))
       .catch((err) => console.error("Error fetching users:", err));
   }, []);
-
-  // Fetch maintenance events - FIXED VERSION
+  
+  // 🔹 Fetch maintenance events
   useEffect(() => {
-    const fetchMaintenanceEvents = async () => {
-      try {
-        setLoading(true);
-        console.log("Fetching maintenance events...");
-        
-        const response = await axios.get("https://machine-backend.azurewebsites.net/ajouter/maintenance");
-        console.log("Fetched data:", response.data);
-        
-        if (!response.data || !Array.isArray(response.data)) {
-          console.error("Invalid data format:", response.data);
-          setSnackbar({ open: true, message: "Invalid data format received", severity: "error" });
-          return;
-        }
-
-        const fetchedEvents: CalendarEvent[] = response.data.map((event: any) => {
-          // Use start_date and end_date from the API response
-          const startDate = event.start_date;
-          const endDate = event.end_date;
-
-          // Validate required fields
-          if (!startDate) {
-            console.warn("Event missing start date:", event);
-            return null;
-          }
-
-          return {
-            id: event.id?.toString(),
-            title: event.task_name || "No Task Name",
-            start: startDate, // Use start_date from API
-            end: endDate || startDate, // Use end_date from API, fallback to start_date
-            allDay: false, // Set to false since you have time components
-            extendedProps: {
-              calendar: event.level || "primary",
-              maintenance_type: event.maintenance_type || "",
-              task_description: event.task_description || "",
-              executor: event.executor || "",
-              status: event.status || "pending"
-            }
-          };
-        }).filter((event): event is CalendarEvent => event !== null);
-
-        console.log("Processed events:", fetchedEvents);
-        setEvents(fetchedEvents);
-        setSnackbar({ 
-          open: true, 
-          message: `Loaded ${fetchedEvents.length} events`, 
-          severity: "success" 
-        });
-        
-      } catch (error) {
-        console.error("Failed to fetch maintenance events:", error);
-        setSnackbar({ open: true, message: "Failed to load events", severity: "error" });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchMaintenanceEvents();
   }, []);
 
-  const openModal = () => setIsModalOpen(true);
-  
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setIsEditing(false);
-    setSelectedEvent(null);
-  };
-
-  const handleDateSelect = (selectInfo: DateSelectArg) => {
-    resetModalFields();
-    setEventStartDate(selectInfo.startStr);
-    setEventEndDate(selectInfo.endStr || selectInfo.startStr);
-    openModal();
-  };
-
-  const handleEventClick = (clickInfo: EventClickArg) => {
-    const event = clickInfo.event;
-    setSelectedEvent({
-      id: event.id,
-      title: event.title,
-      start: event.start?.toISOString() || "",
-      end: event.end?.toISOString() || event.start?.toISOString() || "",
-      maintenance_type: event.extendedProps.maintenance_type,
-      task_description: event.extendedProps.task_description,
-      executor: event.extendedProps.executor,
-      status: event.extendedProps.status,
-    });
-    setIsEditing(true);
-    openModal();
-  };
-
-  const resetModalFields = () => {
-    setEventTitle("");
-    setEventStartDate("");
-    setEventEndDate("");
-    setEventLevel("");
-    setSelectedEvent(null);
-  };
-
-  // Refresh events function
-  const refreshEvents = async () => {
+  const fetchMaintenanceEvents = async () => {
     try {
       setLoading(true);
       const response = await axios.get("https://machine-backend.azurewebsites.net/ajouter/maintenance");
-      
-      const fetchedEvents: CalendarEvent[] = response.data.map((event: any) => ({
+      const data = response.data;
+
+      if (!Array.isArray(data)) throw new Error("Invalid data format");
+
+      const fetchedEvents: CalendarEvent[] = data.map((event: any) => ({
         id: event.id?.toString(),
         title: event.task_name || "No Task Name",
-        start: event.start_date, // Use start_date from API
-        end: event.end_date || event.start_date, // Use end_date from API
+        start: event.start_date,
+        end: event.end_date || event.start_date,
         allDay: false,
         extendedProps: {
           calendar: event.level || "primary",
-          maintenance_type: event.maintenance_type,
-          task_description: event.task_description,
-          executor: event.executor,
-          status: event.status
-        }
-      })).filter((event: CalendarEvent | null): event is CalendarEvent => event !== null);
-      
+          maintenance_type: event.maintenance_type || "",
+          task_description: event.task_description || "",
+          executor: event.assigned_to_name || event.assigned_to || "N/A",
+          executor_email: event.assigned_to_email || "Not provided",
+          creator: event.creator_name || event.creator || "Unknown",
+          creator_email: event.creator_email || "Not provided",
+          machine_id: event.machine_id || "N/A",
+          machine_ref: event.machine_ref || "Unknown Ref",
+          status: event.task_status || "pending",
+          completed_date: event.completed_date || null,
+          recurrence: event.recurrence || null,
+          recurrence_end_date: event.recurrence_end_date || null,
+        },
+      }));
+
       setEvents(fetchedEvents);
-      console.log("Events refreshed:", fetchedEvents);
-      setSnackbar({ open: true, message: "Events refreshed", severity: "success" });
-    } catch (error) {
-      console.error("Failed to refresh events:", error);
-      setSnackbar({ open: true, message: "Failed to refresh events", severity: "error" });
+      setSnackbar({ open: true, message: `Loaded ${fetchedEvents.length} events`, severity: "success" });
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setSnackbar({ open: true, message: "Failed to load events", severity: "error" });
     } finally {
       setLoading(false);
     }
   };
 
+  // 🔹 Refresh button handler
+  const refreshEvents = async () => {
+    await fetchMaintenanceEvents();
+  };
+
+  // 🔹 Event click handler
+  const handleEventClick = (clickInfo: EventClickArg) => {
+    const e = clickInfo.event;
+    setSelectedEvent({
+      id: e.id,
+      title: e.title,
+      start: e.start?.toISOString() || "",
+      end: e.end?.toISOString() || e.start?.toISOString() || "",
+      maintenance_type: e.extendedProps.maintenance_type,
+      task_description: e.extendedProps.task_description,
+      executor: e.extendedProps.executor,
+      executor_email: e.extendedProps.executor_email,
+      status: e.extendedProps.status,
+      creator: e.extendedProps.creator,
+      creator_email: e.extendedProps.creator_email,
+      machine_id: e.extendedProps.machine_id,
+      machine_ref: e.extendedProps.machine_ref,
+      completed_date: e.extendedProps.completed_date,
+      recurrence: e.extendedProps.recurrence,
+      recurrence_end_date: e.extendedProps.recurrence_end_date,
+    });
+    setIsModalOpen(true);
+  };
+
+  // 🔹 Modal close
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+  };
+
   return (
     <>
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        {loading && (
-          <div className="p-4 text-center">Loading events...</div>
-        )}
+        {loading && <div className="p-4 text-center">Loading events...</div>}
 
         <Snackbar
           open={snackbar.open}
@@ -215,20 +173,14 @@ const Calendar: React.FC = () => {
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
             headerToolbar={{
-              left: "prev,next addEventButton",
+              left: "prev,next refreshButton",
               center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay refreshButton",
+              right: "dayGridMonth,timeGridWeek,timeGridDay",
             }}
             events={events}
-            selectable={true}
-            select={handleDateSelect}
             eventClick={handleEventClick}
             eventContent={renderEventContent}
             customButtons={{
-              addEventButton: {
-                text: "Add Event +",
-                click: openModal,
-              },
               refreshButton: {
                 text: "Refresh",
                 click: refreshEvents,
@@ -238,128 +190,77 @@ const Calendar: React.FC = () => {
           />
         </div>
 
+        {/* 🔹 Modal for Event Details */}
         <Modal
-          title="Maintenance Task Details"
+          title={null}
           open={isModalOpen}
           onCancel={closeModal}
           footer={null}
+          centered
+          width={650}
           destroyOnClose
         >
-          {selectedEvent && !isEditing ? (
-            <div className="space-y-2 text-sm text-gray-700">
-              <p><strong>Task:</strong> {selectedEvent.title}</p>
-              <p><strong>Maintenance Type:</strong> {selectedEvent.maintenance_type}</p>
-              <p><strong>Task Description:</strong> {selectedEvent.task_description}</p>
-              <p><strong>Start Date:</strong> {new Date(selectedEvent.start).toLocaleString()}</p>
-              <p><strong>End Date:</strong> {new Date(selectedEvent.end).toLocaleString()}</p>
-              <p><strong>Status:</strong> {selectedEvent.status}</p>
-              <p><strong>Executor:</strong> {selectedEvent.executor}</p>
-            </div>
-          ) : (
-            <form className="space-y-2 text-sm text-gray-700">
-              <div>
-                <label className="block font-semibold">Task</label>
-                <input
-                  className="border w-full rounded p-1"
-                  value={eventTitle}
-                  onChange={(e) => setEventTitle(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block font-semibold">Maintenance Type</label>
-                <input
-                  className="border w-full rounded p-1"
-                  value={selectedEvent?.maintenance_type || ""}
-                  onChange={(e) =>
-                    setSelectedEvent((prev: any) => ({
-                      ...prev,
-                      maintenance_type: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="block font-semibold">Task Description</label>
-                <textarea
-                  className="border w-full rounded p-1"
-                  value={selectedEvent?.task_description || ""}
-                  onChange={(e) =>
-                    setSelectedEvent((prev: any) => ({
-                      ...prev,
-                      task_description: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="block font-semibold">Start Date</label>
-                <DatePicker
-                  selected={eventStartDate ? new Date(eventStartDate) : null}
-                  onChange={(date) => setEventStartDate(date ? date.toISOString() : "")}
-                  showTimeSelect
-                  dateFormat="yyyy-MM-dd HH:mm"
-                  timeFormat="HH:mm"
-                  placeholderText="Select a start date"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block font-semibold">End Date</label>
-                <DatePicker
-                  selected={eventEndDate ? new Date(eventEndDate) : null}
-                  onChange={(date) => setEventEndDate(date ? date.toISOString() : "")}
-                  showTimeSelect
-                  dateFormat="yyyy-MM-dd HH:mm"
-                  timeFormat="HH:mm"
-                  placeholderText="Select an end date"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  required
-                />
-              </div>
-              <div className="text-right">
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    try {
-                      const response = await fetch(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${selectedEvent?.id}`, {
-                        method: "PUT",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                          task_name: eventTitle,
-                          maintenance_type: selectedEvent?.maintenance_type,
-                          task_description: selectedEvent?.task_description,
-                          start_date: eventStartDate,
-                          end_date: eventEndDate,
-                          status: selectedEvent?.status,
-                          executor: selectedEvent?.executor,
-                        }),
-                      });
-
-                      if (response.ok) {
-                        console.log("Maintenance updated successfully");
-                        setSnackbar({ open: true, message: `Maintenance updated successfully`, severity: "success" });
-                        refreshEvents(); // Refresh events after update
-                      } else {
-                        console.error("Failed to update maintenance");
-                        setSnackbar({ open: true, message: `Failed to update maintenance`, severity: "error" });
-                      }
-
-                      setIsEditing(false);
-                      closeModal();
-                    } catch (error) {
-                      console.error("Error updating maintenance:", error);
-                      setSnackbar({ open: true, message: `Error updating maintenance`, severity: "error" });
-                    }
-                  }}
-                  className="bg-blue-500 text-white px-3 py-1 rounded"
+          {selectedEvent && (
+            <div className="p-6 bg-gradient-to-br from-white via-blue-50 to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                  🛠 Maintenance Details
+                </h2>
+                <span
+                  className={`px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${
+                    selectedEvent.status === "completed"
+                      ? "bg-green-100 text-green-700"
+                      : selectedEvent.status === "pending"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
                 >
-                  Save
-                </button>
+                  {selectedEvent.status?.toUpperCase()}
+                </span>
               </div>
-            </form>
+
+              {/* 🧩 Task Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-gray-700 dark:text-gray-200">
+                <InfoCard label="Task Name" value={selectedEvent.title} />
+                <InfoCard label="Maintenance Type" value={selectedEvent.maintenance_type} />
+                <InfoCard label="Executor" value={selectedEvent.executor_email} />
+                <InfoCard label="Start Date" value={new Date(selectedEvent.start).toLocaleString()} />
+                <InfoCard label="End Date" value={new Date(selectedEvent.end).toLocaleString()} />
+              </div>
+
+              {/* 🧾 Description */}
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-1">Task Description</p>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-600">
+                  {selectedEvent.task_description || "No description provided."}
+                </div>
+              </div>
+
+              {/* 🧩 Additional Info */}
+              <div className="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                <h3 className="text-md font-semibold text-blue-600 dark:text-blue-400 mb-3">
+                  📅 Additional Information
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-700 dark:text-gray-300 text-sm">
+                  <InfoCard label="Machine Reference" value={selectedEvent.machine_ref} />
+                  <InfoCard label="Machine ID" value={selectedEvent.machine_id} />
+                  <InfoCard label="Creator" value={selectedEvent.creator_email} />
+                  {selectedEvent.completed_date && (
+                    <InfoCard
+                      label="Completed Date"
+                      value={new Date(selectedEvent.completed_date).toLocaleString()}
+                    />
+                  )}
+                  {selectedEvent.recurrence && <InfoCard label="Recurrence" value={selectedEvent.recurrence} />}
+                  {selectedEvent.recurrence_end_date && (
+                    <InfoCard
+                      label="Recurrence Ends"
+                      value={new Date(selectedEvent.recurrence_end_date).toLocaleDateString()}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
           )}
         </Modal>
       </div>
@@ -367,14 +268,21 @@ const Calendar: React.FC = () => {
   );
 };
 
+// 🔹 Helper component for info fields
+const InfoCard = ({ label, value }: { label: string; value?: string }) => (
+  <div className="bg-white/60 dark:bg-gray-800/60 p-3 rounded-xl border border-gray-100 dark:border-gray-600 shadow-sm">
+    <p className="text-sm text-gray-500">{label}</p>
+    <p className="font-semibold">{value || "N/A"}</p>
+  </div>
+);
+
+// 🔹 Custom event render in calendar
 const renderEventContent = (eventInfo: any) => {
-  const level = eventInfo.event.extendedProps?.calendar || 'primary';
+  const level = eventInfo.event.extendedProps?.calendar || "primary";
   const colorClass = `fc-bg-${level.toLowerCase()}`;
 
   return (
-    <div
-      className={`event-fc-color flex fc-event-main ${colorClass} p-1 rounded-sm`}
-    >
+    <div className={`event-fc-color flex fc-event-main ${colorClass} p-1 rounded-sm`}>
       <div className="fc-daygrid-event-dot"></div>
       <div className="fc-event-time">{eventInfo.timeText}</div>
       <div className="fc-event-title">{eventInfo.event.title}</div>
