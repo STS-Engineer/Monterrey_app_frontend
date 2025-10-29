@@ -2382,15 +2382,6 @@ const Card = ({ machine, onDelete, onUpdate }) => {
                 <Input  placeholder="Enter frequency" />
               </Form.Item>
                       
-              <Form.Item label="powerunits" name="powerunits">
-                <Input  placeholder="Enter Power Units" />
-              </Form.Item>
-
-    
-              <Form.Item label="year" name="year">
-                <Input  placeholder="Enter Year" />
-              </Form.Item>
-
                    {/* Dropdown for Water Cooling (Yes/No) */}
                    <Form.Item
                       label="Water Cooling"
