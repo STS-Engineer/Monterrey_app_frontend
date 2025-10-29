@@ -2829,17 +2829,36 @@ const Card = ({ machine, onDelete, onUpdate }) => {
 
 
 
-        {machines.length > machinesPerPage && (
-          <div className="pagination">
-            <button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="pagination-button">
-              Previous
-            </button>
-            <span className="page-info">Page {currentPage} of {totalPages}</span>
-            <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="pagination-button">
-              Next
-            </button>
-          </div>
-        )}
+{machines.length > machinesPerPage && (
+  <div className="flex items-center justify-center gap-4 mt-6">
+    <button
+      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+      disabled={currentPage === 1}
+      className={`px-5 py-2 rounded-xl font-medium shadow-sm transition-all duration-200 
+        ${currentPage === 1
+          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+          : "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 active:scale-95"}`}
+    >
+      ⬅ Previous
+    </button>
+
+    <span className="text-gray-700 font-semibold bg-gray-100 px-4 py-2 rounded-lg shadow-sm">
+      Page {currentPage} of {totalPages}
+    </span>
+
+    <button
+      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+      disabled={currentPage === totalPages}
+      className={`px-5 py-2 rounded-xl font-medium shadow-sm transition-all duration-200 
+        ${currentPage === totalPages
+          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+          : "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 active:scale-95"}`}
+    >
+      Next ➡
+    </button>
+  </div>
+)}
+
       </div>
     </div>
   );
