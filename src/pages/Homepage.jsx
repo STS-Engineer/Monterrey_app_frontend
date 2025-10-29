@@ -2842,10 +2842,6 @@ const Card = ({ machine, onDelete, onUpdate }) => {
       ⬅ Previous
     </button>
 
-    <span className="text-gray-700 font-semibold bg-gray-100 px-4 py-2 rounded-lg shadow-sm">
-      Page {currentPage} of {totalPages}
-    </span>
-
     <button
       onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
       disabled={currentPage === totalPages}
