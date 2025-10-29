@@ -206,17 +206,19 @@ const Calendar: React.FC = () => {
                 <h2 className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                   🛠 Maintenance Details
                 </h2>
-                <span
-                  className={`px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${
-                    selectedEvent.status === "completed"
-                      ? "bg-green-100 text-green-700"
-                      : selectedEvent.status === "pending"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {selectedEvent.status?.toUpperCase()}
-                </span>
+              <span
+               className={`px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${
+               selectedEvent.status?.toLowerCase() === "completed"
+              ? "bg-green-100 text-green-700"
+              : selectedEvent.status?.toLowerCase() === "pending review"
+              ? "bg-blue-100 text-blue-700"
+             : selectedEvent.status?.toLowerCase() === "in progress"
+             ? "bg-yellow-100 text-yellow-700"
+            : "bg-red-100 text-red-700"
+            }`}
+          >
+           {selectedEvent.status?.toUpperCase()}
+           </span>
               </div>
 
               {/* 🧩 Task Info */}
@@ -243,7 +245,6 @@ const Calendar: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-700 dark:text-gray-300 text-sm">
                   <InfoCard label="Machine Reference" value={selectedEvent.machine_ref} />
-                  <InfoCard label="Machine ID" value={selectedEvent.machine_id} />
                   <InfoCard label="Creator" value={selectedEvent.creator_email} />
                   {selectedEvent.completed_date && (
                     <InfoCard
