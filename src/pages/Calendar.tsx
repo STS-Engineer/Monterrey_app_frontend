@@ -225,7 +225,6 @@ const Calendar: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-gray-700 dark:text-gray-200">
                 <InfoCard label="Task Name" value={selectedEvent.title} />
                 <InfoCard label="Maintenance Type" value={selectedEvent.maintenance_type} />
-                <InfoCard label="Executor" value={selectedEvent.executor_email} />
                 <InfoCard label="Start Date" value={new Date(selectedEvent.start).toLocaleString()} />
                 <InfoCard label="End Date" value={new Date(selectedEvent.end).toLocaleString()} />
               </div>
@@ -245,7 +244,21 @@ const Calendar: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-700 dark:text-gray-300 text-sm">
                   <InfoCard label="Machine Reference" value={selectedEvent.machine_ref} />
-                  <InfoCard label="Creator" value={selectedEvent.creator_email} />
+                 <InfoCard label="Executor"   value={selectedEvent.executor_email
+                ? selectedEvent.executor_email
+                   .split("@")[0]              // take only before '@'
+                   .replace(/\./g, " ")        // replace dots with spaces
+                  .replace(/\b\w/g, (c) => c.toUpperCase()) // capitalize each word
+                  : "N/A"
+                    }/>
+
+                  <InfoCard label="Creator" value={selectedEvent.creator_email
+                ? selectedEvent.creator_email
+                   .split("@")[0]              // take only before '@'
+                   .replace(/\./g, " ")        // replace dots with spaces
+                  .replace(/\b\w/g, (c) => c.toUpperCase()) // capitalize each word
+                  : "N/A"
+                    } />
                   {selectedEvent.completed_date && (
                     <InfoCard
                       label="Completed Date"
