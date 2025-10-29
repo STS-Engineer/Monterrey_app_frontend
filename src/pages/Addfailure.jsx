@@ -88,7 +88,7 @@ const handleSubmit = async (e) => {
               <option value="">-- Choose a machine --</option>
               {machines.map((machine) => (
                 <option key={machine.machine_id} value={machine.machine_id}>
-                  {machine.machine_name}
+                  {machine.machine_ref}
                 </option>
               ))}
             </select>
