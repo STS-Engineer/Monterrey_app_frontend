@@ -209,7 +209,7 @@ const handleExecutorFeedbackChange = async (taskId, newComment) => {
 
   handleExecutorFeedbackChange.timeout = setTimeout(async () => {
     try {
-      await axios.post(`http://localhost:4000/ajouter/maintenance/${taskId}/executor-feedback`, {
+      await axios.post(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${taskId}/executor-feedback`, {
         feedback: newComment,
         user_id: userId,
       });
