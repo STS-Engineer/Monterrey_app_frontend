@@ -190,6 +190,36 @@ useEffect(() => {
 
 
 }, []);
+
+  // Auto-save executor feedback when typing
+const handleExecutorFeedbackChange = async (taskId, newComment) => {
+  // Update the UI immediately
+  setMyTasks(prev =>
+    prev.map(task =>
+      task.maintenance_id === taskId
+        ? { ...task, executor_feedback: newComment }
+        : task
+    )
+  );
+
+  // Debounced save to backend
+  if (handleExecutorFeedbackChange.timeout) {
+    clearTimeout(handleExecutorFeedbackChange.timeout);
+  }
+
+  handleExecutorFeedbackChange.timeout = setTimeout(async () => {
+    try {
+      await axios.post(`http://localhost:4000/ajouter/maintenance/${taskId}/executor-feedback`, {
+        feedback: newComment,
+        user_id: userId,
+      });
+      console.log(`💾 Auto-saved feedback for task ${taskId}: ${newComment}`);
+    } catch (error) {
+      console.error('❌ Error auto-saving feedback:', error);
+    }
+  }, 1000); // waits 1 second after typing stops
+};
+
   // Send task for review - fixed to use task.id
 // Update handleSendReview function
 const handleSendReview = async (taskId) => {
@@ -335,6 +365,7 @@ const statusConfig = {
                 <th className="p-3 text-left">Assigned Person</th>
                 <th className="p-3 text-left">Task Status</th>
                 <th className="p-3 text-left">Review Status</th>
+                <th className="p-3 text-left">Feedback executor</th>
                 <th className="p-3 text-left">Actions</th>
               </tr>
             </thead>
@@ -358,7 +389,17 @@ const statusConfig = {
                   </td>
                 <td className="p-3">{renderTextWithTooltips(task.review_status || '-')}</td>
 
-                <td className="p-3">
+               <td className="p-3">
+              <input
+               type="text"
+               placeholder="Type feedback..."
+               value={task.executor_feedback || ''}
+               onChange={(e) => handleExecutorFeedbackChange(task.maintenance_id, e.target.value)}
+                className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+               </td>
+ 
+             <td className="p-3">
 {(['In progress', 'Rejected'].includes(task.task_status) || 
   (task.task_status === 'Pending Review' && task.review_status === 'Responded')) && 
   !sentForReviewTasks.has(task.maintenance_id) ? (
