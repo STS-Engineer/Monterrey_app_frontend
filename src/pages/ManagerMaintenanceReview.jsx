@@ -254,6 +254,7 @@ const ManagerReviewPanel = ({ managerId }) => {
                 <p><strong>Task Name:</strong> {renderTextWithTooltips(selectedReview.task_name)}</p>
                 <p><strong>Machine Name:</strong> {renderTextWithTooltips(machineMap[selectedReview.machine_id]?.name || 'N/A')}</p>
                 <p><strong>Machine Ref:</strong> {renderTextWithTooltips(machineMap[selectedReview.machine_id]?.ref || 'N/A')}</p>
+                <p><strong> Executor Comment:</strong> {renderTextWithTooltips(selectedReview.executor_feedback)}</p>
               </div>
               <div className="space-y-2">
                 <p><strong>Demanded by:</strong> {renderTextWithTooltips(userMap[selectedReview.assigned_to] || 'N/A')}</p>
