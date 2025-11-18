@@ -976,7 +976,7 @@ const formatHistoryValue = (value, field) => {
                           <PencilIcon className="w-4 h-4" />
                         </button>
                       )}
-                      {(role === 'MANAGER' || role === 'ADMIN') && item.task_status !== 'Completed' && (
+                      {(role === 'MANAGER' || role === 'ADMIN') && (
                         <button
                           onClick={() => openModaldelete(item, 'delete')}
                           className="text-red-600 hover:text-red-800 p-0.5 rounded hover:bg-red-50"
