@@ -99,7 +99,7 @@ const Homepage = () => {
   const [formValues, setFormValues] = useState({}); // State to persist form values
   const user_id = localStorage.getItem('user_id');
   const machinesPerPage = 12; // Fetch 4 cards per page
-
+  const role= localStorage.getItem('role');
  const BASE_FILE_URL = 'https://machine-backend.azurewebsites.net/uploads/'; // replace with your actual backend URL
 
 const fileLinks = [
@@ -2134,6 +2134,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
     </div>
   )}
 </Modal>
+          {(role == "ADMIN" || role === "MANAGER")&& (   
          <div    onClick={(e) => {
             e.stopPropagation(); // prevent modal click conflict
           fetchMachineDetails(machine.machine_id);
@@ -2153,7 +2154,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
             }}>
               <EditOutlined style={{ fontSize: '12px', color: '#6366f1' }} />
             </div>
-
+           )}
      
 
 <style>
@@ -2619,7 +2620,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
 
         </Form>
             </Modal>
-
+            {(role==="ADMIN" || role==="MANAGER")&&(
             <div style={{
               width: '24px',
               height: '24px',
@@ -2636,6 +2637,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
             }}>
               <DeleteOutlined style={{ fontSize: '12px', color: '#ef4444' }} onClick={() => handleDelete(machine.machine_id)} />
             </div>
+           )}
           </div>
         </div>
       </div>
