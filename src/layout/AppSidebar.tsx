@@ -81,7 +81,7 @@ const navItems: NavItem[] = [
     icon: MaintenanceIcon,
     name: "Maintenance",
     subItems: [
-      { name: "Create Maintenance Task", path: "/addmaintenace", roles: ["EXECUTOR", "ADMIN", "MANAGER"] },
+      { name: "Create Maintenance Task", path: "/addmaintenace", roles: ["ADMIN", "MANAGER"] },
       { name: "Create Maintenance Task", path: "/addmaintenanceviewer", roles: ["VIEWER"] },
       { name: "View Maintenance Task", path: "/maintenanceviewer", roles: ["VIEWER"] },
       { name: "View Maintenance Task", path: "/maintenancedetails", roles: ["ADMIN", "MANAGER", "EXECUTOR"] },
