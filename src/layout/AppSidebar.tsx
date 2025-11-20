@@ -70,7 +70,7 @@ const navItems: NavItem[] = [
     icon: MachineManagementIcon,
     name: "Machine Management",
     subItems: [
-      { name: "Add new machine", path: "/addmachine", roles: ["EXECUTOR", "ADMIN", "MANAGER"] },
+      { name: "Add new machine", path: "/addmachine", roles: ["ADMIN", "MANAGER"] },
       { name: "Add new machine", path: "/addmachineviewer", roles: ["VIEWER"] },
       { name: "View machines", path: "/machinelist", roles: ["EXECUTOR", "MANAGER", "ADMIN"] },
       { name: "View machines", path: "/machineviewer", roles: ["VIEWER"] },
