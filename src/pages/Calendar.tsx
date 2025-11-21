@@ -235,43 +235,55 @@ const Calendar: React.FC = () => {
           baseEvent.rrule = rruleConfig;
           baseEvent.duration = { hours: durationHours };
 
-        } else if (recurrence === "monthly") {
-          const rruleConfig = {
-            freq: "MONTHLY",
-            interval: event.interval || 1,
-            dtstart: startDate.toISOString(),
-          };
+        }else if (recurrence === "monthly") {
+    const rruleConfig: any = {
+     freq: "MONTHLY",
+     interval: event.interval || 1,
+     dtstart: new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())).toISOString(),
+   };
 
-          // Handle different monthly patterns
-          if (event.pattern_variant === "specific_day" && event.monthly_day) {
-            rruleConfig.bymonthday = parseInt(event.monthly_day);
-          } else if (event.pattern_variant === "ordinal_weekday" && event.monthly_weekday) {
-            // Handle ordinal weekdays (e.g., "first Monday", "last Friday")
-            const weekdayMap = {
-              "sunday": "su", "monday": "mo", "tuesday": "tu", "wednesday": "we",
-              "thursday": "th", "friday": "fr", "saturday": "sa"
-            };
-            
-            const weekdayKey = event.monthly_weekday.toLowerCase();
-            if (weekdayMap[weekdayKey]) {
-              rruleConfig.byweekday = [weekdayMap[weekdayKey]];
-              if (event.monthly_ordinal) {
-                rruleConfig.bysetpos = event.monthly_ordinal === "last" ? -1 : parseInt(event.monthly_ordinal);
-              }
-            }
-          } else if (event.monthly_day) {
-            // Fallback if no pattern_variant specified
-            rruleConfig.bymonthday = parseInt(event.monthly_day);
-          }
-          
-          if (event.recurrence_end_date) {
-            rruleConfig.until = new Date(event.recurrence_end_date).toISOString();
-          }
+    // Handle different monthly patterns
+    if (event.pattern_variant === "specific_day" && event.monthly_day) {
+    rruleConfig.bymonthday = parseInt(event.monthly_day);
+  
+    } else if (event.pattern_variant === "monthly_nth" && event.monthly_ordinal !== undefined && event.monthly_weekday !== undefined) {
+    
+     const ordinalMap: { [key: number]: number } = {
+      1: 1, 2: 2, 3: 3, 4: 4, 5: 5, "-1": -1
+    };
+ 
+    const weekdayMap: { [key: number]: number } = {
+    1: 0, // Monday
+    2: 1, // Tuesday
+    3: 2, // Wednesday
+    4: 3, // Thursday
+    5: 4, // Friday
+    6: 5, // Saturday
+    7: 6, // Sunday
+    };
 
-          baseEvent.rrule = rruleConfig;
-          baseEvent.duration = { hours: durationHours };
+    const weekOfMonth = event.monthly_ordinal;
+    const weekday = event.monthly_weekday;
 
-        } else if (recurrence === "yearly") {
+    if (weekdayMap[weekday] !== undefined) {
+      rruleConfig.byweekday = [weekdayMap[weekday]];
+      
+      if (ordinalMap[weekOfMonth] !== undefined) {
+        rruleConfig.bysetpos = ordinalMap[weekOfMonth];
+        }
+      }
+     } else if (event.monthly_day) {
+       rruleConfig.bymonthday = parseInt(event.monthly_day);
+     }
+  
+      if (event.recurrence_end_date) {
+       const endDate = new Date(event.recurrence_end_date);
+       rruleConfig.until = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59)).toISOString();
+      }
+
+        baseEvent.rrule = rruleConfig;
+         baseEvent.duration = { hours: durationHours };
+         } else if (recurrence === "yearly") {
           const rruleConfig = {
             freq: "YEARLY",
             interval: event.interval || 1,
