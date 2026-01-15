@@ -24,7 +24,7 @@ interface CalendarEvent extends EventInput {
     completed_date?: string | null;
     recurrence?: string | null;
     recurrence_end_date?: string | null;
-    task_link?: string | null; // Added task_link field
+    task_link?: string | null;
   };
 }
 
@@ -45,7 +45,7 @@ interface SelectedEvent {
   completed_date?: string | null;
   recurrence?: string | null;
   recurrence_end_date?: string | null;
-  task_link?: string | null; // Added task_link field
+  task_link?: string | null;
 }
 
 const Calendar: React.FC = () => {
@@ -58,9 +58,9 @@ const Calendar: React.FC = () => {
     severity: "success" as "success" | "error" | "info",
   });
   const [loading, setLoading] = useState(true);
-  const [linkInput, setLinkInput] = useState(""); // State for link input
-  const [isEditingLink, setIsEditingLink] = useState(false); // State for edit mode
-  const [savingLink, setSavingLink] = useState(false); // State for saving loading
+  const [linkInput, setLinkInput] = useState("");
+  const [isEditingLink, setIsEditingLink] = useState(false);
+  const [savingLink, setSavingLink] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
 
   useEffect(() => {
@@ -70,13 +70,12 @@ const Calendar: React.FC = () => {
   const fetchMaintenanceEvents = async () => {
     try {
       setLoading(true);
-      
-      // Get user info from localStorage
+
       const userId = localStorage.getItem('user_id');
       const role = localStorage.getItem('role');
-      
+
       console.log('User ID:', userId, 'Role:', role);
-      
+
       if (!userId || !role) {
         setSnackbar({
           open: true,
@@ -87,59 +86,74 @@ const Calendar: React.FC = () => {
         return;
       }
 
-      // Fetch all maintenance data
       const response = await axios.get('https://machine-backend.azurewebsites.net/ajouter/maintenance');
       const allData = response.data;
+      console.log('all data mai', allData);
 
       console.log('Total events from API:', allData.length);
 
-      // Filter data based on user role
       let filteredData = allData;
-      
+
       if (role === 'EXECUTOR') {
-        // Executors only see tasks assigned to them
-        filteredData = allData.filter(item => 
+        filteredData = allData.filter(item =>
           parseInt(item.assigned_to) === parseInt(userId)
         );
         console.log(`Executor view: Found ${filteredData.length} tasks assigned to user ${userId}`);
       } else if (role === 'MANAGER') {
-        // Managers see tasks they created
-        filteredData = allData;
+        filteredData = allData.filter(item =>
+          parseInt(item.creator) === parseInt(userId)
+        );
         console.log(`Manager view: Found ${filteredData.length} tasks created by user ${userId}`);
       } else if (role === 'ADMIN') {
-        // ADMIN sees all data (no filtering)
         filteredData = allData;
         console.log(`Admin view: Showing all ${filteredData.length} tasks`);
       }
 
       console.log('Final filtered tasks:', filteredData);
 
-      const dayMap = {
-        sunday: "su",
-        monday: "mo",
-        tuesday: "tu",
-        wednesday: "we",
-        thursday: "th",
-        friday: "fr",
-        saturday: "sa",
-      };
-
-      const fetchedEvents = filteredData.map((event, index) => {
+      const fetchedEvents = filteredData.map((event) => {
         const recurrence = event.recurrence?.toLowerCase();
-        const startDate = new Date(event.start_date);
-        const endDate = event.end_date ? new Date(event.end_date) : null;
-        
-        // Validate start date
-        if (isNaN(startDate.getTime())) {
+
+        // Parse dates consistently with Addmaintenance.jsx
+        const parseDate = (dateString: string) => {
+          if (!dateString) return null;
+
+          // Parse date as local time directly
+          // The backend should send ISO string (2026-01-15T08:45:00)
+          const date = new Date(dateString);
+
+          if (isNaN(date.getTime())) {
+            console.error("Invalid date string:", dateString);
+            return null;
+          }
+
+          return date;
+        };
+
+        const startDate = parseDate(event.start_date);
+        const endDate = event.end_date ? parseDate(event.end_date) : null;
+        const recurrenceEndDate = event.recurrence_end_date ? parseDate(event.recurrence_end_date) : null;
+
+        if (!startDate || isNaN(startDate.getTime())) {
           console.error("Invalid start_date for event:", event);
           return null;
         }
-        
-        // Calculate duration for recurring events
-        const durationMs = endDate ? endDate.getTime() - startDate.getTime() : 3600000;
-        const durationHours = Math.max(1, Math.round(durationMs / 3600000));
 
-        const baseEvent = {
+        // Calculate duration in hours (same logic as Addmaintenance.jsx)
+        let durationHours = 1;
+        if (endDate && !isNaN(endDate.getTime())) {
+          const durationMs = endDate.getTime() - startDate.getTime();
+          durationHours = Math.max(1, Math.round(durationMs / 3600000));
+        }
+
+        // Format date for FullCalendar (YYYY-MM-DDTHH:mm:ss)
+        const formatForCalendar = (date: Date) => {
+          // Format as local ISO string without timezone offset
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        };
+
+        const baseEvent: any = {
           id: event.id?.toString(),
           title: event.task_name || "No Task Name",
           allDay: false,
@@ -157,155 +171,190 @@ const Calendar: React.FC = () => {
             completed_date: event.completed_date || null,
             recurrence: event.recurrence || null,
             recurrence_end_date: event.recurrence_end_date || null,
-            task_link: event.task_link || null, // Added task_link
+            task_link: event.task_link || null,
+            // ADD THESE: Store the original dates from API
+            original_start_date: event.start_date, // Store the raw string
+            original_end_date: event.end_date, // Store the raw string
           },
         };
 
-        // Check if it's a non-recurring event
+        // Non-recurring event
         if (!recurrence || recurrence === "none" || recurrence === "null") {
-          // Non-recurring event
-          baseEvent.start = startDate.toISOString();
-          baseEvent.end = endDate ? endDate.toISOString() : new Date(startDate.getTime() + durationMs).toISOString();
-        } else if (recurrence === "daily") {
-          const rruleConfig = {
+          baseEvent.start = formatForCalendar(startDate);
+          if (endDate && !isNaN(endDate.getTime())) {
+            baseEvent.end = formatForCalendar(endDate);
+          } else {
+            // Default 1 hour duration (matching Addmaintenance.jsx)
+            const defaultEnd = new Date(startDate.getTime() + 3600000);
+            baseEvent.end = formatForCalendar(defaultEnd);
+          }
+        }
+        // Daily recurrence
+        else if (recurrence === "daily") {
+          const rruleConfig: any = {
             freq: "DAILY",
             interval: event.interval || 1,
-            dtstart: startDate.toISOString(),
+            dtstart: formatForCalendar(startDate),
           };
-          
-          if (event.recurrence_end_date) {
-            rruleConfig.until = new Date(event.recurrence_end_date).toISOString();
+
+          if (recurrenceEndDate) {
+            rruleConfig.until = formatForCalendar(recurrenceEndDate);
           }
-          
+
           baseEvent.rrule = rruleConfig;
           baseEvent.duration = { hours: durationHours };
-
-        } else if (recurrence === "weekly") {
-          // Handle weekdays - convert numeric values to RRule format
+        }
+        // Weekly recurrence
+        else if (recurrence === "weekly") {
           let byweekday = [];
-          
+
           if (event.weekdays && Array.isArray(event.weekdays)) {
-            // Map numeric weekdays (0=sunday, 1=monday, etc.) to RRule format
-            const numericToRRuleMap = {
-              0: "su", // Sunday
-              1: "mo", // Monday
-              2: "tu", // Tuesday
-              3: "we", // Wednesday
-              4: "th", // Thursday
-              5: "fr", // Friday
-              6: "sa", // Saturday
-            };
-            
+            // Convert numeric weekdays to RRule format (0-6, Sunday-Saturday)
             byweekday = event.weekdays
-              .map((day) => numericToRRuleMap[day])
-              .filter(Boolean); // Remove any undefined values
-          }
-          
-          // If no valid weekdays found, default to the start date's weekday
-          if (byweekday.length === 0) {
-            const startDay = startDate.getDay(); // 0=sunday, 1=monday, etc.
-            const defaultDayMap = {
-              0: "su", 1: "mo", 2: "tu", 3: "we", 4: "th", 5: "fr", 6: "sa"
-            };
-            byweekday = [defaultDayMap[startDay] || "mo"];
+              .map((day) => {
+                if (day >= 0 && day <= 6) {
+                  return ["su", "mo", "tu", "we", "th", "fr", "sa"][day];
+                }
+                return null;
+              })
+              .filter(Boolean);
           }
 
-          const rruleConfig = {
+          // If no valid weekdays, use start date's weekday
+          if (byweekday.length === 0) {
+            const startDay = startDate.getDay(); // 0-6 (Sunday-Saturday)
+            byweekday = [["su", "mo", "tu", "we", "th", "fr", "sa"][startDay]];
+          }
+
+          const rruleConfig: any = {
             freq: "WEEKLY",
             interval: event.interval || 1,
             byweekday,
-            dtstart: startDate.toISOString(),
+            dtstart: formatForCalendar(startDate),
           };
-          
-          if (event.recurrence_end_date) {
-            rruleConfig.until = new Date(event.recurrence_end_date).toISOString();
+
+          if (recurrenceEndDate) {
+            rruleConfig.until = formatForCalendar(recurrenceEndDate);
           }
-          
-          console.log("Weekly event RRule config:", {
-            eventId: event.id,
-            weekdays: event.weekdays,
-            byweekday,
-            interval: event.interval,
-            startDate: startDate.toISOString(),
-            until: event.recurrence_end_date
-          });
-          
+
           baseEvent.rrule = rruleConfig;
           baseEvent.duration = { hours: durationHours };
-
-        }else if (recurrence === "monthly") {
-    const rruleConfig: any = {
-     freq: "MONTHLY",
-     interval: event.interval || 1,
-     dtstart: new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())).toISOString(),
-   };
-
-    // Handle different monthly patterns
-    if (event.pattern_variant === "specific_day" && event.monthly_day) {
-    rruleConfig.bymonthday = parseInt(event.monthly_day);
-  
-    } else if (event.pattern_variant === "monthly_nth" && event.monthly_ordinal !== undefined && event.monthly_weekday !== undefined) {
-    
-     const ordinalMap: { [key: number]: number } = {
-      1: 1, 2: 2, 3: 3, 4: 4, 5: 5, "-1": -1
-    };
- 
-    const weekdayMap: { [key: number]: number } = {
-    1: 0, // Monday
-    2: 1, // Tuesday
-    3: 2, // Wednesday
-    4: 3, // Thursday
-    5: 4, // Friday
-    6: 5, // Saturday
-    7: 6, // Sunday
-    };
-
-    const weekOfMonth = event.monthly_ordinal;
-    const weekday = event.monthly_weekday;
-
-    if (weekdayMap[weekday] !== undefined) {
-      rruleConfig.byweekday = [weekdayMap[weekday]];
-      
-      if (ordinalMap[weekOfMonth] !== undefined) {
-        rruleConfig.bysetpos = ordinalMap[weekOfMonth];
         }
-      }
-     } else if (event.monthly_day) {
-       rruleConfig.bymonthday = parseInt(event.monthly_day);
-     }
-  
-      if (event.recurrence_end_date) {
-       const endDate = new Date(event.recurrence_end_date);
-       rruleConfig.until = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59)).toISOString();
-      }
-
-        baseEvent.rrule = rruleConfig;
-         baseEvent.duration = { hours: durationHours };
-         } else if (recurrence === "yearly") {
-          const rruleConfig = {
-            freq: "YEARLY",
+        // Monthly recurrence
+        else if (recurrence === "monthly") {
+          const rruleConfig: any = {
+            freq: "MONTHLY",
             interval: event.interval || 1,
-            dtstart: startDate.toISOString(),
+            dtstart: formatForCalendar(startDate),
           };
 
-          if (event.yearly_month) {
-            rruleConfig.bymonth = parseInt(event.yearly_month);
-          }
-          if (event.monthly_day) {
+          // Handle monthly patterns (same as Addmaintenance.jsx)
+          if (event.pattern_variant === "specific_day" && event.monthly_day) {
             rruleConfig.bymonthday = parseInt(event.monthly_day);
           }
-          
-          if (event.recurrence_end_date) {
-            rruleConfig.until = new Date(event.recurrence_end_date).toISOString();
+          else if (event.pattern_variant === "monthly_nth" &&
+            event.monthly_ordinal !== undefined &&
+            event.monthly_weekday !== undefined) {
+
+            const weekdayMap: { [key: string]: number } = {
+              "1": 0, // Monday
+              "2": 1, // Tuesday
+              "3": 2, // Wednesday
+              "4": 3, // Thursday
+              "5": 4, // Friday
+              "6": 5, // Saturday
+              "7": 6, // Sunday
+            };
+
+            const ordinalMap: { [key: string]: number } = {
+              "1": 1,
+              "2": 2,
+              "3": 3,
+              "4": 4,
+              "5": 5,
+              "-1": -1
+            };
+
+            const weekOfMonth = parseInt(event.monthly_ordinal);
+            const weekday = parseInt(event.monthly_weekday);
+
+            if (weekdayMap[weekday.toString()] !== undefined) {
+              rruleConfig.byweekday = [weekdayMap[weekday.toString()]];
+
+              if (ordinalMap[weekOfMonth.toString()] !== undefined) {
+                rruleConfig.bysetpos = ordinalMap[weekOfMonth.toString()];
+              }
+            }
+          }
+          else if (event.monthly_day) {
+            rruleConfig.bymonthday = parseInt(event.monthly_day);
+          }
+          else {
+            // Default to day of month from start date
+            rruleConfig.bymonthday = startDate.getDate();
+          }
+
+          if (recurrenceEndDate) {
+            rruleConfig.until = formatForCalendar(recurrenceEndDate);
           }
 
           baseEvent.rrule = rruleConfig;
           baseEvent.duration = { hours: durationHours };
+        }
+        // Yearly recurrence
+        else if (recurrence === "yearly") {
+          const rruleConfig: any = {
+            freq: "YEARLY",
+            interval: event.interval || 1,
+            dtstart: formatForCalendar(startDate),
+          };
 
-        } else {
-          // Non-recurring event for unknown recurrence types
-          baseEvent.start = startDate.toISOString();
-          baseEvent.end = endDate ? endDate.toISOString() : new Date(startDate.getTime() + durationMs).toISOString();
+          // Handle yearly patterns (same as Addmaintenance.jsx)
+          if (event.yearly_mode === 'day') {
+            // Exact date (month + day)
+            if (event.yearly_month !== undefined) {
+              rruleConfig.bymonth = parseInt(event.yearly_month) + 1; // Convert 0-11 to 1-12
+            }
+            if (event.yearly_day) {
+              rruleConfig.bymonthday = parseInt(event.yearly_day);
+            }
+          } else if (event.yearly_mode === 'weekday') {
+            // Weekday ordinal in a month
+            const weekdayMap: { [key: string]: number } = {
+              "1": 0, // Monday
+              "2": 1, // Tuesday
+              "3": 2, // Wednesday
+              "4": 3, // Thursday
+              "5": 4, // Friday
+              "6": 5, // Saturday
+              "7": 6, // Sunday
+            };
+
+            const ordinalMap: { [key: string]: number } = {
+              "first": 1,
+              "second": 2,
+              "third": 3,
+              "fourth": 4,
+              "last": -1
+            };
+
+            if (event.yearly_month !== undefined) {
+              rruleConfig.bymonth = parseInt(event.yearly_month) + 1;
+            }
+            if (event.yearly_weekday !== undefined && weekdayMap[event.yearly_weekday.toString()] !== undefined) {
+              rruleConfig.byweekday = [weekdayMap[event.yearly_weekday.toString()]];
+            }
+            if (event.yearly_ordinal && ordinalMap[event.yearly_ordinal]) {
+              rruleConfig.bysetpos = ordinalMap[event.yearly_ordinal];
+            }
+          }
+
+          if (recurrenceEndDate) {
+            rruleConfig.until = formatForCalendar(recurrenceEndDate);
+          }
+
+          baseEvent.rrule = rruleConfig;
+          baseEvent.duration = { hours: durationHours };
         }
 
         return baseEvent;
@@ -331,29 +380,69 @@ const Calendar: React.FC = () => {
 
   const handleEventClick = (clickInfo: EventClickArg) => {
     const e = clickInfo.event;
+    const extendedProps = e.extendedProps;
+
+    // Format dates for display in local time
+    const formatDisplayDate = (date: Date | null) => {
+      if (!date) return "";
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    };
+
+    // Use original dates if available, otherwise use event dates
+    const getDisplayDate = (dateString: string | null, fallbackDate: Date | null) => {
+      if (dateString) {
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+          return formatDisplayDate(date);
+        }
+      }
+      return formatDisplayDate(fallbackDate);
+    };
+
     const eventData = {
       id: e.id,
       title: e.title,
-      start: e.start?.toISOString() || "",
-      end: e.end?.toISOString() || e.start?.toISOString() || "",
-      maintenance_type: e.extendedProps.maintenance_type,
-      task_description: e.extendedProps.task_description,
-      executor: e.extendedProps.executor,
-      executor_email: e.extendedProps.executor_email,
-      status: e.extendedProps.status,
-      creator: e.extendedProps.creator,
-      creator_email: e.extendedProps.creator_email,
-      machine_id: e.extendedProps.machine_id,
-      machine_ref: e.extendedProps.machine_ref,
-      completed_date: e.extendedProps.completed_date,
-      recurrence: e.extendedProps.recurrence,
-      recurrence_end_date: e.extendedProps.recurrence_end_date,
-      task_link: e.extendedProps.task_link || null,
+      // Use ORIGINAL dates from extendedProps instead of recurrence instance dates
+      start: getDisplayDate(extendedProps.original_start_date, e.start),
+      end: getDisplayDate(extendedProps.original_end_date, e.end),
+      maintenance_type: extendedProps.maintenance_type,
+      task_description: extendedProps.task_description,
+      executor: extendedProps.executor,
+      executor_email: extendedProps.executor_email,
+      status: extendedProps.status,
+      creator: extendedProps.creator,
+      creator_email: extendedProps.creator_email,
+      machine_id: extendedProps.machine_id,
+      machine_ref: extendedProps.machine_ref,
+      completed_date: extendedProps.completed_date ? new Date(extendedProps.completed_date).toLocaleString() : null,
+      recurrence: extendedProps.recurrence,
+      recurrence_end_date: extendedProps.recurrence_end_date ? new Date(extendedProps.recurrence_end_date).toLocaleDateString() : null,
+      task_link: extendedProps.task_link || null,
     };
-    
+
+    // Debug log to see what dates we're using
+    console.log('Event clicked details:', {
+      eventId: e.id,
+      title: e.title,
+      recurrence: extendedProps.recurrence,
+      originalStart: extendedProps.original_start_date,
+      originalEnd: extendedProps.original_end_date,
+      instanceStart: e.start,
+      instanceEnd: e.end,
+      displayStart: eventData.start,
+      displayEnd: eventData.end
+    });
+
     setSelectedEvent(eventData);
-    setLinkInput(eventData.task_link || ""); // Initialize link input with current value
-    setIsEditingLink(false); // Reset edit mode
+    setLinkInput(eventData.task_link || "");
+    setIsEditingLink(false);
     setIsModalOpen(true);
   };
 
@@ -362,33 +451,30 @@ const Calendar: React.FC = () => {
 
     try {
       setSavingLink(true);
-      
-      // Update the task link in the database
+
       const response = await axios.put(`https://machine-backend.azurewebsites.net/ajouter/maintenance/${selectedEvent.id}`, {
         task_link: linkInput
       });
 
       if (response.status === 200) {
         message.success("Task link updated successfully!");
-        
-        // Update the selected event in state
+
         setSelectedEvent(prev => prev ? { ...prev, task_link: linkInput } : null);
-        
-        // Update the events in state to reflect the change
-        setEvents(prevEvents => 
-          prevEvents.map(event => 
-            event.id === selectedEvent.id 
-              ? { 
-                  ...event, 
-                  extendedProps: { 
-                    ...event.extendedProps, 
-                    task_link: linkInput 
-                  } 
-                } 
+
+        setEvents(prevEvents =>
+          prevEvents.map(event =>
+            event.id === selectedEvent.id
+              ? {
+                ...event,
+                extendedProps: {
+                  ...event.extendedProps,
+                  task_link: linkInput
+                }
+              }
               : event
           )
         );
-        
+
         setIsEditingLink(false);
       }
     } catch (error) {
@@ -462,8 +548,8 @@ const Calendar: React.FC = () => {
           width={650}
           destroyOnClose
         >
-          <EventModalContent 
-            event={selectedEvent} 
+          <EventModalContent
+            event={selectedEvent}
             linkInput={linkInput}
             setLinkInput={setLinkInput}
             isEditingLink={isEditingLink}
@@ -478,7 +564,6 @@ const Calendar: React.FC = () => {
   );
 };
 
-// 🔹 Event content for calendar
 const renderEventContent = (eventInfo: any) => {
   const level = eventInfo.event.extendedProps?.calendar || "primary";
   const colorClass = `fc-bg-${level.toLowerCase()}`;
@@ -490,7 +575,6 @@ const renderEventContent = (eventInfo: any) => {
   );
 };
 
-// 🔹 Modal content with link functionality
 interface EventModalContentProps {
   event: SelectedEvent;
   linkInput: string;
@@ -502,29 +586,28 @@ interface EventModalContentProps {
   onCancelEdit: () => void;
 }
 
-const EventModalContent = ({ 
-  event, 
-  linkInput, 
-  setLinkInput, 
-  isEditingLink, 
-  savingLink, 
-  onSaveLink, 
-  onEditLink, 
-  onCancelEdit 
+const EventModalContent = ({
+  event,
+  linkInput,
+  setLinkInput,
+  isEditingLink,
+  savingLink,
+  onSaveLink,
+  onEditLink,
+  onCancelEdit
 }: EventModalContentProps) => (
   <div className="p-6 bg-gradient-to-br from-white via-blue-50 to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
     <div className="flex items-center justify-between mb-5">
       <h2 className="text-2xl font-bold text-blue-700 dark:text-blue-300">🛠 Maintenance Details</h2>
       <span
-        className={`px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${
-          event.status?.toLowerCase() === "completed"
-            ? "bg-green-100 text-green-700"
-            : event.status?.toLowerCase() === "pending review"
+        className={`px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${event.status?.toLowerCase() === "completed"
+          ? "bg-green-100 text-green-700"
+          : event.status?.toLowerCase() === "pending review"
             ? "bg-blue-100 text-blue-700"
             : event.status?.toLowerCase() === "in progress"
-            ? "bg-yellow-100 text-yellow-700"
-            : "bg-red-100 text-red-700"
-        }`}
+              ? "bg-yellow-100 text-yellow-700"
+              : "bg-red-100 text-red-700"
+          }`}
       >
         {event.status?.toUpperCase()}
       </span>
@@ -532,8 +615,8 @@ const EventModalContent = ({
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-gray-700 dark:text-gray-200">
       <InfoCard label="Task Name" value={event.title} />
       <InfoCard label="Maintenance Type" value={event.maintenance_type} />
-      <InfoCard label="Start Date" value={new Date(event.start).toLocaleString()} />
-      <InfoCard label="End Date" value={new Date(event.end).toLocaleString()} />
+      <InfoCard label="Start Date" value={event.start} />
+      <InfoCard label="End Date" value={event.end} />
     </div>
     <div className="mb-4">
       <p className="text-sm text-gray-500 mb-1">Task Description</p>
@@ -547,9 +630,9 @@ const EventModalContent = ({
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm text-gray-500">Instrucción de Mantenimiento Preventivo</p>
         {!isEditingLink && (
-          <Button 
-            type="link" 
-            size="small" 
+          <Button
+            type="link"
+            size="small"
             onClick={onEditLink}
             className="text-blue-600 hover:text-blue-800"
           >
@@ -557,7 +640,7 @@ const EventModalContent = ({
           </Button>
         )}
       </div>
-      
+
       {isEditingLink ? (
         <div className="space-y-2">
           <Input
@@ -567,8 +650,8 @@ const EventModalContent = ({
             type="url"
           />
           <div className="flex space-x-2">
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               onClick={onSaveLink}
               loading={savingLink}
               disabled={!linkInput.trim()}
@@ -583,9 +666,9 @@ const EventModalContent = ({
       ) : (
         <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-600">
           {event.task_link ? (
-            <a 
-              href={event.task_link} 
-              target="_blank" 
+            <a
+              href={event.task_link}
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 underline break-words"
             >
@@ -604,9 +687,9 @@ const EventModalContent = ({
         <InfoCard label="Machine Reference" value={event.machine_ref} />
         <InfoCard label="Executor" value={event.executor_email || "N/A"} />
         <InfoCard label="Creator" value={event.creator_email || "N/A"} />
-        {event.completed_date && <InfoCard label="Completed Date" value={new Date(event.completed_date).toLocaleString()} />}
+        {event.completed_date && <InfoCard label="Completed Date" value={event.completed_date} />}
         {event.recurrence && <InfoCard label="Recurrence" value={event.recurrence} />}
-        {event.recurrence_end_date && <InfoCard label="Recurrence Ends" value={new Date(event.recurrence_end_date).toLocaleDateString()} />}
+        {event.recurrence_end_date && <InfoCard label="Recurrence Ends" value={event.recurrence_end_date} />}
       </div>
     </div>
   </div>
