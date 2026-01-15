@@ -100,9 +100,7 @@ const Calendar: React.FC = () => {
         );
         console.log(`Executor view: Found ${filteredData.length} tasks assigned to user ${userId}`);
       } else if (role === 'MANAGER') {
-        filteredData = allData.filter(item =>
-          parseInt(item.creator) === parseInt(userId)
-        );
+         filteredData = allData;
         console.log(`Manager view: Found ${filteredData.length} tasks created by user ${userId}`);
       } else if (role === 'ADMIN') {
         filteredData = allData;
