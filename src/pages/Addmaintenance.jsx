@@ -261,6 +261,7 @@ const Addmaintenance = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Changing ${name} from ${formData[name]} to ${value}`); // Debug log
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -370,92 +371,96 @@ const Addmaintenance = () => {
 
 
   // Update your handleSubmit function to use loading
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true); // Start loading
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
 
-    if (!formData.start_date) {
-      toast.error("Please select a start date", { position: "bottom-right" });
-      setIsSubmitting(false); // Stop loading on error
+  if (!formData.start_date) {
+    toast.error("Please select a start date", { position: "bottom-right" });
+    setIsSubmitting(false);
+    return;
+  }
+
+  // ✅ Validate machine_id is selected
+  if (!formData.machine_id) {
+    toast.error("Please select a machine", { position: "bottom-right" });
+    setIsSubmitting(false);
+    return;
+  }
+
+  try {
+    const user_id = parseInt(localStorage.getItem('user_id'), 10);
+    const startDate = new Date(formData.start_date);
+    const endDate = formData.end_date
+      ? new Date(formData.end_date)
+      : new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      toast.error("Invalid start or end date", { position: "bottom-right" });
+      setIsSubmitting(false);
       return;
     }
 
-    try {
-      const user_id = parseInt(localStorage.getItem('user_id'), 10);
-      const startDate = new Date(formData.start_date);
-      const endDate = formData.end_date
-        ? new Date(formData.end_date)
-        : new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+    const untilDate = formData.recurrence_end_date
+      ? new Date(formData.recurrence_end_date)
+      : null;
 
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        toast.error("Invalid start or end date", { position: "bottom-right" });
-        setIsSubmitting(false); // Stop loading on error
-        return;
-      }
-
-      const untilDate = formData.recurrence_end_date
-        ? new Date(formData.recurrence_end_date)
-        : null;
-
-      if (formData.recurrence !== 'none' && !untilDate) {
-        toast.error("Please select an end date for recurrence", { position: "bottom-right" });
-        setIsSubmitting(false); // Stop loading on error
-        return;
-      }
-
-      // Build payload
-      const payload = {
-        maintenance_type: formData.maintenance_type,
-        task_name: formData.task_name,
-        task_description: formData.task_description,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        assigned_to: formData.assigned_to,
-        creator: user_id,
-        user_id: user_id,
-        machine_id: formData.machine_id,
-        task_status: formData.task_status,
-
-        // Recurrence fields
-        recurrence: formData.recurrence || 'none',
-        interval: formData.interval,
-        weekdays: formData.recurrence_days || [],
-        recurrence_end_date: untilDate ? untilDate.toISOString() : null,
-
-        // Monthly
-        monthlyDay: tempRecurrenceConfig.monthlyMode === 'day' ? tempRecurrenceConfig.monthlyDay : null,
-        monthlyOrdinal: tempRecurrenceConfig.monthlyMode === 'weekday' ? tempRecurrenceConfig.monthlyOrdinal : null,
-        monthlyWeekday: tempRecurrenceConfig.monthlyMode === 'weekday' ? tempRecurrenceConfig.monthlyWeekday : null,
-
-        // Yearly specific
-        yearlyMode: tempRecurrenceConfig.yearlyMode,
-        yearlyMonth: tempRecurrenceConfig.yearlyMonth,
-        yearlyDay: tempRecurrenceConfig.yearlyDay,
-        yearlyOrdinal: tempRecurrenceConfig.yearlyOrdinal,
-        yearlyWeekday: tempRecurrenceConfig.yearlyWeekday,
-      };
-
-      // Always POST just once
-      const response = await axios.post('https://machine-backend.azurewebsites.net/ajouter/maintenance', payload);
-
-      // Just refresh from backend to stay consistent
-      await fetchMaintenanceEvents();
-      toast.success("Maintenance task added!", { position: "bottom-right" });
-
-      resetForm();
-
-    } catch (err) {
-      console.error(err);
-      toast.error("Error submitting task", { position: "bottom-right" });
-    } finally {
-      setIsSubmitting(false); // Always stop loading
+    if (formData.recurrence !== 'none' && !untilDate) {
+      toast.error("Please select an end date for recurrence", { position: "bottom-right" });
+      setIsSubmitting(false);
+      return;
     }
-  };
 
+    // Build payload with machine_id
+    const payload = {
+      maintenance_type: formData.maintenance_type,
+      task_name: formData.task_name,
+      task_description: formData.task_description,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
+      assigned_to: formData.assigned_to,
+      creator: user_id,
+      user_id: user_id,
+      machine_id: parseInt(formData.machine_id, 10), // ✅ Include machine_id as integer
+      task_status: formData.task_status || 'In progress',
 
+      // Recurrence fields
+      recurrence: formData.recurrence || 'none',
+      interval: formData.interval,
+      weekdays: formData.recurrence_days || [],
+      recurrence_end_date: untilDate ? untilDate.toISOString() : null,
 
+      // Monthly
+      monthlyDay: tempRecurrenceConfig.monthlyMode === 'day' ? tempRecurrenceConfig.monthlyDay : null,
+      monthlyOrdinal: tempRecurrenceConfig.monthlyMode === 'weekday' ? tempRecurrenceConfig.monthlyOrdinal : null,
+      monthlyWeekday: tempRecurrenceConfig.monthlyMode === 'weekday' ? tempRecurrenceConfig.monthlyWeekday : null,
 
+      // Yearly specific
+      yearlyMode: tempRecurrenceConfig.yearlyMode,
+      yearlyMonth: tempRecurrenceConfig.yearlyMonth,
+      yearlyDay: tempRecurrenceConfig.yearlyDay,
+      yearlyOrdinal: tempRecurrenceConfig.yearlyOrdinal,
+      yearlyWeekday: tempRecurrenceConfig.yearlyWeekday,
+    };
 
+    console.log('Submitting payload:', payload); // ✅ Debug log
+
+    // Always POST just once
+    const response = await axios.post('https://machine-backend.azurewebsites.net/ajouter/maintenance', payload);
+
+    // Just refresh from backend to stay consistent
+    await fetchMaintenanceEvents();
+    toast.success("Maintenance task added!", { position: "bottom-right" });
+
+    resetForm();
+
+  } catch (err) {
+    console.error('Submit error:', err);
+    toast.error(err.response?.data?.message || "Error submitting task", { position: "bottom-right" });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   // Ensure createEventObject handles the data structure correctly
   const createEventObject = (eventData) => {
@@ -587,7 +592,6 @@ const Addmaintenance = () => {
 
 
 
-
   const resetForm = () => {
     setFormData({
       maintenance_type: '',
@@ -598,14 +602,38 @@ const Addmaintenance = () => {
       start_date: null,
       end_date: null,
       completed_date: null,
-      machine_id: '',
+      machine_id: '', // This is the important fix
       recurrence: 'none',
       interval: 1,
       recurrence_days: [],
       recurrence_end_date: null,
+      monthly_mode: 'day',
+      monthly_day: 1,
+      monthly_ordinal: 'first',
+      monthly_weekday: 1,
+      yearly_mode: 'weekday',
+      yearly_month: 0,
+      yearly_day: 1,
+      yearly_ordinal: 'first',
+      yearly_weekday: 1,
+    });
+
+    // Also reset the temporary recurrence config
+    setTempRecurrenceConfig({
+      interval: 1,
+      days: [],
+      endDate: null,
+      monthlyMode: "day",
+      monthlyDay: 1,
+      monthlyOrdinal: "first",
+      monthlyWeekday: 1,
+      yearlyMode: "weekday",
+      yearlyMonth: 0,
+      yearlyDay: 1,
+      yearlyOrdinal: "first",
+      yearlyWeekday: 1,
     });
   };
-
   const showSnackbar = (message, severity = 'success') => {
     setSnackbar({ open: true, message, severity });
   };
