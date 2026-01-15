@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo  } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {Layout,  Modal, Steps, Form, Input, Upload, Button, Select, Switch, Row, Col, message, notification  } from "antd";
-import { EditOutlined, DeleteOutlined, FileTextOutlined, SettingOutlined, HistoryOutlined, IdcardOutlined, EnvironmentOutlined, ShopOutlined, AppstoreOutlined, CalendarOutlined, ToolOutlined, DashboardOutlined, BarcodeOutlined, UserOutlined, PlusOutlined, EyeOutlined, QrcodeOutlined, PrinterOutlined   } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, FileTextOutlined, SettingOutlined, HistoryOutlined, IdcardOutlined, EnvironmentOutlined, ShopOutlined, AppstoreOutlined, CalendarOutlined, ToolOutlined, DashboardOutlined, BarcodeOutlined, UserOutlined, PlusOutlined, EyeOutlined, QrcodeOutlined, PrinterOutlined, LinkOutlined    } from '@ant-design/icons';
 import { 
   SearchOutlined
 } from '@ant-design/icons';
@@ -1330,9 +1330,6 @@ const Card = ({ machine, onDelete, onUpdate }) => {
           open={qrModalVisible}
           onCancel={handleQrModalClose}
           footer={[
-            <Button key="download" type="primary" onClick={downloadQRCode}>
-              Download QR Code
-            </Button>,
             <Button key="close" onClick={handleQrModalClose}>
               Close
             </Button>,
@@ -2080,6 +2077,7 @@ const Card = ({ machine, onDelete, onUpdate }) => {
 
 
 {/* QR Code Modal */}
+{/* QR Code Modal */}
 <Modal
   title={`QR Code - ${currentQrMachine?.machine_name || "Machine"}`}
   open={qrModalVisible}
@@ -2088,14 +2086,12 @@ const Card = ({ machine, onDelete, onUpdate }) => {
     <Button key="print" onClick={handlePrintQRCode} icon={<PrinterOutlined />}>
       Print QR Code
     </Button>,
-    <Button key="download" type="primary" onClick={downloadQRCode}>
-      Download QR Code
-    </Button>,
+
     <Button key="close" onClick={() => setQrModalVisible(false)}>
       Close
     </Button>,
   ]}
-  width={450}
+  width={500}
 >
   {currentQrMachine && (
     <div style={{ textAlign: "center", padding: "20px" }}>
@@ -2119,6 +2115,66 @@ const Card = ({ machine, onDelete, onUpdate }) => {
       {/* Your MachineQRCode component - make sure it has an id for download */}
       <div id="qrcode-canvas">
         <MachineQRCode machineId={currentQrMachine.machine_id} />
+      </div>
+      
+      {/* Add URL link section */}
+      <div style={{
+        marginTop: "20px",
+        padding: "15px",
+        background: "#f0f9ff",
+        borderRadius: "8px",
+        border: "1px solid #bae6fd",
+        textAlign: "left"
+      }}>
+        <p style={{ 
+          margin: "0 0 10px 0", 
+          fontWeight: "500",
+          color: "#0369a1",
+          fontSize: "14px"
+        }}>
+          📍 Direct Machine Link
+        </p>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          background: "white",
+          padding: "10px",
+          borderRadius: "6px",
+          border: "1px solid #e5e7eb"
+        }}>
+          <LinkOutlined style={{ color: "#3b82f6" }} />
+          <a 
+            href={`#/machine/${currentQrMachine.machine_id}`} 
+            onClick={(e) => {
+              e.preventDefault();
+              // Navigate to machine details page
+              navigate(`/machine/${currentQrMachine.machine_id}`);
+              setQrModalVisible(false);
+            }}
+            style={{
+              color: "#2563eb",
+              textDecoration: "none",
+              fontSize: "14px",
+              wordBreak: "break-all",
+              fontWeight: "500",
+              cursor: "pointer",
+              ":hover": {
+                textDecoration: "underline"
+              }
+            }}
+          >
+            View Machine Details
+          </a>
+        </div>
+        <p style={{
+          margin: "8px 0 0 0",
+          color: "#6b7280",
+          fontSize: "12px",
+          fontStyle: "italic"
+        }}>
+          Click to open machine details page
+        </p>
       </div>
       
       <p
