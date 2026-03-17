@@ -77,64 +77,133 @@ export default function Home() {
   };
 
   const failureData = useMemo(() => {
-    const resolvedFailures = failures.filter(
-      (item) => item.failure_date && item.resolved_date
+    const validFailures = failures
+      .filter((item) => item.failure_date)
+      .map((item) => ({
+        ...item,
+        failureDateObj: new Date(item.failure_date),
+        resolvedDateObj: item.resolved_date ? new Date(item.resolved_date) : null,
+      }))
+      .filter((item) => !isNaN(item.failureDateObj.getTime()))
+      .sort((a, b) => a.failureDateObj - b.failureDateObj);
+
+    // -----------------------------
+    // KPI 1: Time between failures
+    // -----------------------------
+    const betweenFailuresMonthlyMap = {};
+    let totalBetweenFailuresMs = 0;
+    let betweenFailuresCount = 0;
+
+    for (let i = 0; i < validFailures.length - 1; i++) {
+      const currentFailure = validFailures[i];
+      const nextFailure = validFailures[i + 1];
+
+      const diffMs = nextFailure.failureDateObj - currentFailure.failureDateObj;
+      if (diffMs < 0) continue;
+
+      // group by current failure month
+      const key = `${currentFailure.failureDateObj.getFullYear()}-${String(
+        currentFailure.failureDateObj.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      if (!betweenFailuresMonthlyMap[key]) {
+        betweenFailuresMonthlyMap[key] = {
+          month: key,
+          totalBetweenFailuresMs: 0,
+          count: 0,
+        };
+      }
+
+      betweenFailuresMonthlyMap[key].totalBetweenFailuresMs += diffMs;
+      betweenFailuresMonthlyMap[key].count += 1;
+
+      totalBetweenFailuresMs += diffMs;
+      betweenFailuresCount += 1;
+    }
+
+    // -----------------------------
+    // KPI 2 & 3: Repair time
+    // -----------------------------
+    const resolvedFailures = validFailures.filter(
+      (item) =>
+        item.resolvedDateObj && !isNaN(item.resolvedDateObj.getTime())
     );
 
-    const monthlyMap = {};
+    const repairMonthlyMap = {};
     let totalRepairMs = 0;
     let resolvedCount = 0;
 
     resolvedFailures.forEach((item) => {
-      const failureDate = new Date(item.failure_date);
-      const resolvedDate = new Date(item.resolved_date);
-
-      if (isNaN(failureDate.getTime()) || isNaN(resolvedDate.getTime())) return;
-
-      const repairMs = resolvedDate - failureDate;
+      const repairMs = item.resolvedDateObj - item.failureDateObj;
       if (repairMs < 0) return;
 
-      totalRepairMs += repairMs;
-      resolvedCount += 1;
-
-      const key = `${failureDate.getFullYear()}-${String(
-        failureDate.getMonth() + 1
+      const key = `${item.failureDateObj.getFullYear()}-${String(
+        item.failureDateObj.getMonth() + 1
       ).padStart(2, "0")}`;
 
-      if (!monthlyMap[key]) {
-        monthlyMap[key] = {
+      if (!repairMonthlyMap[key]) {
+        repairMonthlyMap[key] = {
           month: key,
           totalRepairMs: 0,
           count: 0,
         };
       }
 
-      monthlyMap[key].totalRepairMs += repairMs;
-      monthlyMap[key].count += 1;
+      repairMonthlyMap[key].totalRepairMs += repairMs;
+      repairMonthlyMap[key].count += 1;
+
+      totalRepairMs += repairMs;
+      resolvedCount += 1;
     });
 
-    const monthlyRows = Object.values(monthlyMap)
-      .map((row) => {
-        const avgRepairMs = row.count > 0 ? row.totalRepairMs / row.count : 0;
+    // merge all months
+    const allMonths = Array.from(
+      new Set([
+        ...Object.keys(betweenFailuresMonthlyMap),
+        ...Object.keys(repairMonthlyMap),
+      ])
+    ).sort();
 
-        return {
-          month: row.month,
-          label: monthLabel(row.month),
-          avgRepairDays: toDays(avgRepairMs),
-          totalRepairDays: toDays(row.totalRepairMs),
-          failuresCount: row.count,
-        };
-      })
-      .sort((a, b) => a.month.localeCompare(b.month));
+    const monthlyRows = allMonths.map((month) => {
+      const betweenData = betweenFailuresMonthlyMap[month];
+      const repairData = repairMonthlyMap[month];
+
+      const avgBetweenFailuresMs =
+        betweenData && betweenData.count > 0
+          ? betweenData.totalBetweenFailuresMs / betweenData.count
+          : 0;
+
+      const avgRepairMs =
+        repairData && repairData.count > 0
+          ? repairData.totalRepairMs / repairData.count
+          : 0;
+
+      return {
+        month,
+        label: monthLabel(month),
+        avgBetweenFailuresDays: toDays(avgBetweenFailuresMs),
+        avgRepairDays: toDays(avgRepairMs),
+        totalRepairDays: toDays(repairData?.totalRepairMs || 0),
+        failuresCount: repairData?.count || 0,
+        betweenFailuresCount: betweenData?.count || 0,
+      };
+    });
+
+    const overallAvgBetweenFailuresMs =
+      betweenFailuresCount > 0
+        ? totalBetweenFailuresMs / betweenFailuresCount
+        : 0;
 
     const overallAvgRepairMs =
       resolvedCount > 0 ? totalRepairMs / resolvedCount : 0;
 
     return {
       monthlyRows,
+      overallAvgBetweenFailuresMs,
       overallAvgRepairMs,
       totalRepairMs,
       resolvedCount,
+      betweenFailuresCount,
     };
   }, [failures]);
 
@@ -262,11 +331,11 @@ export default function Home() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100">
                 <span className="text-xl">🛠️</span>
               </div>
-              <p className="text-sm text-slate-500">Average repair time</p>
+              <p className="text-sm text-slate-500">Average time between failures</p>
               <h2 className="mt-2 text-3xl font-bold text-slate-800">
-                {formatDuration(failureData.overallAvgRepairMs)}
+                {formatDuration(failureData.overallAvgBetweenFailuresMs)}
               </h2>
-              <p className="mt-2 text-xs text-slate-400">Across resolved failures</p>
+              <p className="mt-2 text-xs text-slate-400">Based on consecutive failure dates</p>
             </div>
 
             <div className={`${cardBase} p-6`}>
@@ -311,7 +380,7 @@ export default function Home() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
-                    Average repair time per month
+                  Average time between failures per month
                   </h3>
                   <p className="text-sm text-slate-500">
                     Displayed in days for clear monthly comparison
@@ -349,7 +418,7 @@ export default function Home() {
                       />
                       <Tooltip
                         cursor={{ fill: "rgba(59,130,246,0.06)" }}
-                        formatter={(value) => [`${value} days`, "Average repair time"]}
+                        formatter={(value) => [`${value} days`, "Avg. time between failures"]}
                         contentStyle={{
                           borderRadius: "16px",
                           border: "1px solid #e5e7eb",
@@ -357,8 +426,8 @@ export default function Home() {
                         }}
                       />
                       <Bar
-                        dataKey="avgRepairDays"
-                        name="Average repair time"
+                        dataKey="avgBetweenFailuresDays"
+                        name="Avg. time between failures"
                         fill="#3b82f6"
                         radius={[10, 10, 0, 0]}
                       />
