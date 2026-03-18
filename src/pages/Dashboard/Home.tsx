@@ -380,7 +380,7 @@ export default function Home() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
-                  Average time between failures per month
+                    Average time between failures per month
                   </h3>
                   <p className="text-sm text-slate-500">
                     Displayed in days for clear monthly comparison
@@ -441,6 +441,9 @@ export default function Home() {
               </div>
             </div>
 
+
+
+
             <div className={`${cardBase} p-6`}>
               <div className="mb-5">
                 <h3 className="text-lg font-semibold text-slate-800">
@@ -481,6 +484,136 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Average Repair Time + Monthly PM Accomplishment */}
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+
+            {/* Average Repair Time */}
+            <div className={`${cardBase} p-6`}>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Average repair time per month
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Mean duration from failure to resolution, in days
+                  </p>
+                </div>
+                <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-600">
+                  Monthly KPI
+                </div>
+              </div>
+
+              <div className="h-80">
+                {failureData.monthlyRows.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={failureData.monthlyRows}
+                      barCategoryGap="28%"
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="repairGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#059669" stopOpacity={0.8} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fill: "#64748b", fontSize: 12 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fill: "#64748b", fontSize: 12 }}
+                        axisLine={false}
+                        tickLine={false}
+                        label={{
+                          value: "Days",
+                          angle: -90,
+                          position: "insideLeft",
+                          offset: 10,
+                          style: { fill: "#94a3b8", fontSize: 11 },
+                        }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "rgba(16,185,129,0.06)" }}
+                        formatter={(value) => [`${value} days`, "Avg. repair time"]}
+                        contentStyle={{
+                          borderRadius: "16px",
+                          border: "1px solid #e5e7eb",
+                          boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+                        }}
+                      />
+                      <Bar
+                        dataKey="avgRepairDays"
+                        name="Avg. repair time"
+                        fill="url(#repairGradient)"
+                        radius={[10, 10, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-slate-400">
+                    No repair time data available yet.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Monthly PM Accomplishment Trend */}
+            <div className={`${cardBase} p-6`}>
+              <div className="mb-5">
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Monthly preventive maintenance accomplishment
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Completion percentage by month
+                </p>
+              </div>
+
+              <div className="h-80">
+                {preventiveData.monthlyRows.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={preventiveData.monthlyRows}>
+                      <defs>
+                        <linearGradient id="pmGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f97316" stopOpacity={0.35} />
+                          <stop offset="95%" stopColor="#f97316" stopOpacity={0.03} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                      <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 12 }} />
+                      <YAxis domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 12 }} />
+                      <Tooltip
+                        formatter={(value) => [`${value}%`, "Accomplishment"]}
+                        contentStyle={{
+                          borderRadius: "16px",
+                          border: "1px solid #e5e7eb",
+                          boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="accomplishmentPercentage"
+                        stroke="#f97316"
+                        fillOpacity={1}
+                        fill="url(#pmGradient)"
+                        strokeWidth={3}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-slate-400">
+                    No accomplishment trend available yet.
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+
 
           {/* Preventive Section */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -577,54 +710,7 @@ export default function Home() {
           </div>
 
           {/* Monthly accomplishment trend */}
-          <div className={`${cardBase} p-6`}>
-            <div className="mb-5">
-              <h3 className="text-lg font-semibold text-slate-800">
-                Monthly preventive maintenance accomplishment
-              </h3>
-              <p className="text-sm text-slate-500">
-                Completion percentage by month
-              </p>
-            </div>
 
-            <div className="h-80">
-              {preventiveData.monthlyRows.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={preventiveData.monthlyRows}>
-                    <defs>
-                      <linearGradient id="pmGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#f97316" stopOpacity={0.03} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                    <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 12 }} />
-                    <YAxis domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 12 }} />
-                    <Tooltip
-                      formatter={(value) => [`${value}%`, "Accomplishment"]}
-                      contentStyle={{
-                        borderRadius: "16px",
-                        border: "1px solid #e5e7eb",
-                        boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="accomplishmentPercentage"
-                      stroke="#f97316"
-                      fillOpacity={1}
-                      fill="url(#pmGradient)"
-                      strokeWidth={3}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center justify-center text-slate-400">
-                  No accomplishment trend available yet.
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </>
