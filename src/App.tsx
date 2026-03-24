@@ -39,7 +39,7 @@ import Failurelist from "./pages/FailureList";
 import MachineQRCode from "./pages/MachineQRCode";
 import MachinesQrcode from "./pages/AllMachinesQR";
 import MachineDetail from "./pages/MachineDetail";
-
+import UserManagement from "./pages/Usermanagement";
 
 
 export default function App() {
@@ -92,7 +92,7 @@ export default function App() {
           {/*ManagerMaintenaceReview*/}
           <Route path="/manager/reviews" element={<ManagerReviewPanel managerId={currentUser} />} />
 
-         
+          <Route path="/users" element={<UserManagement />} />
          {/*Failure*/}
           <Route path="/addfailure" element={<Addfailure />} />
           <Route path="/failurelist" element={<Failurelist />} />
