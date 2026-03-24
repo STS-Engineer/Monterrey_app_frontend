@@ -22,16 +22,16 @@ const AppHeader: React.FC = () => {
   };
 
   useEffect(() => {
-  const storedUser = localStorage.getItem("role");
-  if (storedUser) {
-    try {
-    
-      setUserRole(storedUser);
-    } catch (e) {
-      console.error("Error parsing user from localStorage", e);
+    const storedUser = localStorage.getItem("role");
+    if (storedUser) {
+      try {
+
+        setUserRole(storedUser);
+      } catch (e) {
+        console.error("Error parsing user from localStorage", e);
+      }
     }
-  }
-}, []);
+  }, []);
 
   const toggleApplicationMenu = () => {
     setApplicationMenuOpen(!isApplicationMenuOpen);
@@ -99,7 +99,7 @@ const AppHeader: React.FC = () => {
           </button>
 
           <Link to="/" className="lg:hidden">
-         
+
           </Link>
 
           <button
@@ -122,69 +122,92 @@ const AppHeader: React.FC = () => {
             </svg>
           </button>
 
-       
+
         </div>
         <div
-          className={`${
-            isApplicationMenuOpen ? "flex" : "hidden"
-          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+          className={`${isApplicationMenuOpen ? "flex" : "hidden"
+            } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
 
-{userRole === "ADMIN" && (
-  <button
-    onClick={() => navigate('/roleassign')}
-    className="bg-sky-500 text-white p-2 rounded-full hover:bg-sky-600 transition-colors"
-    aria-label="Role Assignment"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {/* User group */}
-      <circle cx="8" cy="7" r="4" />
-      <circle cx="17" cy="7" r="3" />
-      <path d="M2 21v-2a4 4 0 0 1 4-4h6" />
-      
-      {/* Gear for role/settings */}
-      <circle cx="17" cy="17" r="3" />
-      <path d="M17 14v1M17 19v1M15 17h1M19 17h1M16.5 15.5l.7.7M18.8 18.8l.7.7M16.5 18.5l.7-.7M18.8 15.2l.7-.7" />
-    </svg>
-  </button>
-)}
-{userRole === "MANAGER" && (
-  <button
-    onClick={() => navigate('/teamassignment')}
-    className="bg-sky-500 text-white p-2 rounded-full hover:bg-sky-600 transition-colors"
-    aria-label="Role Assignment"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {/* User group */}
-      <circle cx="8" cy="7" r="4" />
-      <circle cx="17" cy="7" r="3" />
-      <path d="M2 21v-2a4 4 0 0 1 4-4h6" />
-      
-      {/* Gear for role/settings */}
-      <circle cx="17" cy="17" r="3" />
-      <path d="M17 14v1M17 19v1M15 17h1M19 17h1M16.5 15.5l.7.7M18.8 18.8l.7.7M16.5 18.5l.7-.7M18.8 15.2l.7-.7" />
-    </svg>
-  </button>
-)}
+            {userRole === "ADMIN" && (
+              <button
+                onClick={() => navigate('/roleassign')}
+                className="bg-sky-500 text-white p-2 rounded-full hover:bg-sky-600 transition-colors"
+                aria-label="Role Assignment"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="8" cy="7" r="4" />
+                  <circle cx="17" cy="7" r="3" />
+                  <path d="M2 21v-2a4 4 0 0 1 4-4h6" />
+                  <circle cx="17" cy="17" r="3" />
+                  <path d="M17 14v1M17 19v1M15 17h1M19 17h1M16.5 15.5l.7.7M18.8 18.8l.7.7M16.5 18.5l.7-.7M18.8 15.2l.7-.7" />
+                </svg>
+              </button>
+            )}
+
+            {/* ── Admin: Manage Users (add / delete) ── */}
+            {userRole === "ADMIN" && (
+              <button
+                onClick={() => navigate('/users')}
+                className="bg-sky-500 text-white p-2 rounded-full hover:bg-sky-600 transition-colors"
+                aria-label="Manage Users"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {/* Person silhouette */}
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" />
+                  {/* Plus sign */}
+                  <line x1="19" y1="8" x2="19" y2="14" />
+                  <line x1="16" y1="11" x2="22" y2="11" />
+                </svg>
+              </button>
+            )}
+            {userRole === "MANAGER" && (
+              <button
+                onClick={() => navigate('/teamassignment')}
+                className="bg-sky-500 text-white p-2 rounded-full hover:bg-sky-600 transition-colors"
+                aria-label="Role Assignment"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {/* User group */}
+                  <circle cx="8" cy="7" r="4" />
+                  <circle cx="17" cy="7" r="3" />
+                  <path d="M2 21v-2a4 4 0 0 1 4-4h6" />
+
+                  {/* Gear for role/settings */}
+                  <circle cx="17" cy="17" r="3" />
+                  <path d="M17 14v1M17 19v1M15 17h1M19 17h1M16.5 15.5l.7.7M18.8 18.8l.7.7M16.5 18.5l.7-.7M18.8 15.2l.7-.7" />
+                </svg>
+              </button>
+            )}
 
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
@@ -192,16 +215,16 @@ const AppHeader: React.FC = () => {
             <NotificationDropdown />
             {/* <!-- Notification Menu Area --> */}
 
-   
-        <button
-          onClick={()=>navigate('/signin')}
-          className="bg-sky-400 text-white px-4 py-2 rounded-md hover:bg-sky-500 transition-colors"
-      >
-        Logout
-      </button>
+
+            <button
+              onClick={() => navigate('/signin')}
+              className="bg-sky-400 text-white px-4 py-2 rounded-md hover:bg-sky-500 transition-colors"
+            >
+              Logout
+            </button>
 
           </div>
-     
+
         </div>
       </div>
     </header>
